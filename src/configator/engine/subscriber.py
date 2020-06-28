@@ -1,19 +1,11 @@
-import redis, time, os
+#!/usr/bin/env python3
 
-class SettingSubscriber(object):
+from configator.engine import RedisClient, CHANNEL_PATTERN
+
+class SettingSubscriber(RedisClient):
     #
     def __init__(self, *args, **kwargs):
-        self.__host = os.getenv('CONFIGATOR_' + 'REDIS_HOST', 'localhost')
-        self.__sort = int(os.getenv('CONFIGATOR_' + 'REDIS_HOST', '6379'))
-    #
-    ##
-    __r = None
-    #
-    @property
-    def _connection(self):
-        if self.__r is None:
-            self.__r = redis.Redis(host=self.__host, port=self.__sort, db=0)
-        return self.__r
+        super(SettingSubscriber, self).__init__(*args, **kwargs)
     #
     ##
     __s = None
@@ -22,7 +14,7 @@ class SettingSubscriber(object):
     def _sub(self):
         if self.__s is None:
             self.__s = self._connection.pubsub()
-            self.__s.psubscribe(**{'configator': self.event_handler})
+            self.__s.psubscribe(**{CHANNEL_PATTERN: self.event_handler})
         return self.__s
     #
     def event_handler(self, message):
@@ -41,5 +33,5 @@ class SettingSubscriber(object):
             self.__t.stop()
             self.__t = None
         self._sub.unsubscribe()
-        self._connection.close()
+        self._destroy()
     pass

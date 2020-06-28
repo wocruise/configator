@@ -1,19 +1,11 @@
-import redis, time, os
+#!/usr/bin/env python3
 
-class SettingPublisher(object):
+from configator.engine import RedisClient, CHANNEL_PATTERN
+
+class SettingPublisher(RedisClient):
     #
     def __init__(self, *args, **kwargs):
-        self.__host = os.getenv('CONFIGATOR_' + 'REDIS_HOST', 'localhost')
-        self.__port = int(os.getenv('CONFIGATOR_' + 'REDIS_HOST', '6379'))
-    #
-    ##
-    __r = None
-    #
-    @property
-    def _connection(self):
-        if self.__r is None:
-            self.__r = redis.Redis(host=self.__host, port=self.__port, db=0)
-        return self.__r
+        super(SettingPublisher, self).__init__(*args, **kwargs)
     #
     def publish(self, message):
-        self._connection.publish('configator', message)
+        self._connection.publish(CHANNEL_PATTERN, message)
