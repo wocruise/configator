@@ -17,9 +17,6 @@ class SettingSubscriber(RedisClient):
             self.__s.psubscribe(**{CHANNEL_PATTERN: self.event_handler})
         return self.__s
     #
-    def event_handler(self, message):
-        print(message)
-    #
     ##
     __t = None
     #
@@ -34,4 +31,24 @@ class SettingSubscriber(RedisClient):
             self.__t = None
         self._sub.unsubscribe()
         self._destroy()
-    pass
+    #
+    ##
+    __event_mappings = None
+    #
+    def register(self, match, clear, reset):
+        if self.__event_mappings is None:
+            self.__event_mappings = dict()
+        if not (callable(match) and (callable(clear) or callable(reset))):
+            raise ArgumentError('match-clear-reset must be callable')
+        self.__event_mappings[match] = (clear, reset)
+    #
+    def event_handler(self, message):
+        if self.__event_mappings is None:
+            return
+        for match, reaction in self.__event_mappings.items():
+            clear, reset = reaction
+            if match(message):
+                if callable(clear):
+                    clear()
+                if callable(reset):
+                    reset()
