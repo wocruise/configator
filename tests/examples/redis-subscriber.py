@@ -18,18 +18,16 @@ def c1():
 def r1():
     print('reset the service #1')
 s.register(m1, c1, r1)
-atexit.register(s.stop)
+# atexit.register(s.stop)
 
 if __name__ == "__main__":
-    print("[+] starting subscriber")
-    s.start()
-    print("[-] waiting for messages")
-    # try:
-    #     # time.sleep(2)
-    #     # s.stop()
-    # except KeyboardInterrupt:
-    #     print("Shutdown requested...exiting")
-    # except Exception:
-    #     # traceback.print_exc(file=sys.stdout)
-    #     pass
-    # # sys.exit(0)
+    try:
+        print("[+] starting subscriber")
+        s.start()
+        print("[-] waiting for messages")
+    except KeyboardInterrupt:
+        print("Shutdown requested...exiting")
+        s.stop()
+    except Exception:
+        # traceback.print_exc(file=sys.stdout)
+        sys.exit(0)

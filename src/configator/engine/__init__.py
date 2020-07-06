@@ -11,24 +11,34 @@ class RedisClient(object):
         self.__sort = int(os.getenv('CONFIGATOR_' + 'REDIS_PORT', '6379'))
     #
     ##
-    __p = None
     __r = None
+    #
+    #
+    def connect(self):
+        waiting = True
+        while waiting:
+            try:
+                connection = self._connection
+                waiting = False
+                return connection
+            except redis.ConnectionError:
+                pass
+    #
+    #
+    def reconnect(self):
+        self._destroy()
+        return self.connect()
+    #
     #
     @property
     def _connection(self):
-        if self.__p is None:
-            self.__p = redis.BlockingConnectionPool(timeout=120, host=self.__host, port=self.__sort, db=0)
         if self.__r is None:
-            self.__r = redis.Redis(connection_pool=self.__p)
+            pool = redis.ConnectionPool(host=self.__host, port=self.__sort, db=0)
+            self.__r = redis.Redis(connection_pool=pool)
         return self.__r
     #
-    @property
-    def _is_connected(self):
-        return self.__r is not None
     #
     def _destroy(self):
-        if self.__p is not None:
-            self.__p.disconnect()
         if self.__r is not None:
             self.__r.close()
             self.__r = None
