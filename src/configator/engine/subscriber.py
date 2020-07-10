@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import redis, threading
+import redis, threading, traceback, sys
 
 from configator.engine import RedisClient, CHANNEL_PATTERN
 
@@ -13,7 +13,7 @@ class SettingSubscriber(RedisClient):
     @property
     def pubsub(self):
         ps = self.connect().pubsub()
-        ps.psubscribe(**{CHANNEL_PATTERN: self.event_handler})
+        ps.psubscribe(**{CHANNEL_PATTERN: self.__process_event})
         return ps
     #
     ##
@@ -36,25 +36,39 @@ class SettingSubscriber(RedisClient):
         return thread
     #
     ##
+    __transformer = None
+    #
+    def set_transformer(self, transformer):
+        if callable(transformer):
+            self.__transformer = transformer
+        return self
+    #
     __event_mappings = None
     #
-    def register(self, match, clear, reset):
+    def add_event_handler(self, match, clear, reset):
         if self.__event_mappings is None:
             self.__event_mappings = dict()
         if not (callable(match) and (callable(clear) or callable(reset))):
             raise ArgumentError('match-clear-reset must be callable')
         self.__event_mappings[match] = (clear, reset)
+        return self
     #
-    def event_handler(self, message):
+    def __process_event(self, message):
         if self.__event_mappings is None:
             return
+        #
+        if self.__transformer is not None:
+            msg, err = self.__transformer(message)
+        else:
+            msg, err = (message, None)
+        #
         for match, reaction in self.__event_mappings.items():
             clear, reset = reaction
-            if match(message):
+            if match(msg, err):
                 if callable(clear):
-                    clear()
+                    clear(msg, err)
                 if callable(reset):
-                    reset()
+                    reset(msg, err)
 
 
 class PubSubWorkerThread(threading.Thread):

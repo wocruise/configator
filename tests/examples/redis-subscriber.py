@@ -11,13 +11,16 @@ class ExampleController():
     #
 
 s = SettingSubscriber()
-def m1(message):
+
+def m1(message, *args, **kwargs):
     return isinstance(message, dict) and message.get('data') == b'UPDATE_CONFIG_1'
-def c1():
+def c1(message, *args, **kwargs):
+    print(str(message))
     print('clear the setting #1')
-def r1():
+def r1(message, *args, **kwargs):
     print('reset the service #1')
-s.register(m1, c1, r1)
+
+s.add_event_handler(m1, c1, r1)
 # atexit.register(s.stop)
 
 if __name__ == "__main__":
