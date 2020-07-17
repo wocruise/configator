@@ -8,4 +8,4 @@ class SettingPublisher(RedisClient):
         super(SettingPublisher, self).__init__(*args, **kwargs)
     #
     def publish(self, message):
-        self._connection.publish(CHANNEL_PATTERN, message)
+        self.connect().publish(CHANNEL_PATTERN, message)

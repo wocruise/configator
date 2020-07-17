@@ -3,6 +3,7 @@
 import redis, threading, traceback, sys
 
 from configator.engine import RedisClient, CHANNEL_PATTERN
+from typing import Any, Callable, List, Tuple, Dict, Optional
 
 class SettingSubscriber(RedisClient):
     #
@@ -38,14 +39,17 @@ class SettingSubscriber(RedisClient):
     ##
     __transformer = None
     #
-    def set_transformer(self, transformer):
+    def set_transformer(self, transformer: Callable[[Dict], Tuple[Dict, Any]]):
         if callable(transformer):
             self.__transformer = transformer
         return self
     #
+    ##
     __event_mappings = None
     #
-    def add_event_handler(self, match, clear, reset):
+    def add_event_handler(self, match: Callable[[Dict, Any], bool],
+            clear: Optional[Callable[[Dict, Any], None]],
+            reset: Optional[Callable[[Dict, Any], None]]):
         if self.__event_mappings is None:
             self.__event_mappings = dict()
         if not (callable(match) and (callable(clear) or callable(reset))):
