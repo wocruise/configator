@@ -1,27 +1,51 @@
 #!/usr/bin/env python3
 
+import logging
 import redis, os
 
-CHANNEL_PATTERN = 'configator'
+CHANNEL_GROUP = 'configator'
+
+LOG = logging.getLogger(__name__)
 
 class RedisClient(object):
     #
-    def __init__(self, *args, **kwargs):
-        self.__host = os.getenv('CONFIGATOR_' + 'REDIS_HOST', 'localhost')
-        self.__sort = int(os.getenv('CONFIGATOR_' + 'REDIS_PORT', '6379'))
+    def __init__(self, **connection_kwargs):
+        self.__connection_kwargs = connection_kwargs
+        #
+        host = os.getenv('CONFIGATOR_' + 'REDIS_HOST')
+        if host:
+            self.__connection_kwargs['host'] = host
+        #
+        if not self.__connection_kwargs.get('host'):
+            self.__connection_kwargs['host'] = 'localhost'
+        #
+        port = os.getenv('CONFIGATOR_' + 'REDIS_PORT')
+        if port:
+            port = int(port)
+            if port:
+                self.__connection_kwargs['port'] = port
+        #
+        if not self.__connection_kwargs.get('port'):
+            self.__connection_kwargs['port'] = 6379
+        #
+        if 'db' not in self.__connection_kwargs:
+            self.__connection_kwargs['db'] = 0
+        #
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
     #
     ##
-    __r = None
-    #
-    #
     def connect(self):
         waiting = True
         while waiting:
             try:
                 connection = self._connection
+                connection.ping()
                 waiting = False
                 return connection
             except redis.ConnectionError:
+                if LOG.isEnabledFor(logging.DEBUG):
+                    LOG.log(logging.DEBUG, "redis.ConnectionError")
                 pass
     #
     #
@@ -30,10 +54,13 @@ class RedisClient(object):
         return self.connect()
     #
     #
+    __r = None
+    #
+    #
     @property
     def _connection(self):
         if self.__r is None:
-            pool = redis.ConnectionPool(host=self.__host, port=self.__sort, db=0)
+            pool = redis.ConnectionPool(**self.__connection_kwargs)
             self.__r = redis.Redis(connection_pool=pool)
         return self.__r
     #

@@ -2,19 +2,21 @@
 
 import redis, threading, traceback, sys
 
-from configator.engine import RedisClient, CHANNEL_PATTERN
+from configator.engine import RedisClient, CHANNEL_GROUP
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 class SettingSubscriber(RedisClient):
     #
+    CHANNEL_PATTERN = CHANNEL_GROUP + '*'
+    #
     def __init__(self, *args, **kwargs):
-        super(SettingSubscriber, self).__init__(*args, **kwargs)
+        super(SettingSubscriber, self).__init__(**kwargs)
     #
     ##
     @property
     def pubsub(self):
         ps = self.connect().pubsub()
-        ps.psubscribe(**{CHANNEL_PATTERN: self.__process_event})
+        ps.psubscribe(**{self.CHANNEL_PATTERN: self.__process_event})
         return ps
     #
     ##

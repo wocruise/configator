@@ -1,6 +1,7 @@
 
 import __init__
 from configator.engine.subscriber import SettingSubscriber
+from configator.utils.function import match_by_label, transform_json_data
 from typing import Dict, Tuple, Any
 import atexit, sys, time
 
@@ -21,14 +22,14 @@ def t1(message):
     return message, None
 
 def m1(message, *args, **kwargs):
-    return isinstance(message, dict) and message.get('data') == b'UPDATE_CONFIG_1'
+    return isinstance(message, dict) and message.get('channel').endswith(b'UPDATE_CONFIG_1')
 def c1(message, *args, **kwargs):
     print('clear the setting #1')
 def r1(message, *args, **kwargs):
-    print('reset the service #1')
+    print('reset the service #1: %s' % str(message))
 
-s.set_transformer(t1)
-s.add_event_handler(m1, c1, r1)
+s.set_transformer(transform_json_data)
+s.add_event_handler(match_by_label(b'UPDATE_CONFIG_1'), c1, r1)
 atexit.register(s.stop)
 
 if __name__ == "__main__":
