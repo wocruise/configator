@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 
+import atexit
+import logging
 import redis, threading, traceback, sys
 
 from configator.engine import RedisClient, CHANNEL_GROUP
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
+LOG = logging.getLogger(__name__)
+
 class SettingSubscriber(RedisClient):
     #
     CHANNEL_PATTERN = CHANNEL_GROUP + '*'
     #
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, auto_stop=True, **kwargs):
+        if auto_stop:
+            atexit.register(self.stop)
         super(SettingSubscriber, self).__init__(**kwargs)
     #
     ##
@@ -25,6 +31,8 @@ class SettingSubscriber(RedisClient):
     def start(self):
         if self.__t is None:
             self.__t = self.__run_in_thread(sleep_time=0.001)
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "SettingSubscriber has started")
         return self.__t
     #
     def stop(self):
@@ -32,6 +40,8 @@ class SettingSubscriber(RedisClient):
             self.__t.stop()
             self.__t = None
         self._destroy()
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
     def __run_in_thread(self, sleep_time=0):
         thread = PubSubWorkerThread(self, sleep_time)
@@ -91,6 +101,8 @@ class PubSubWorkerThread(threading.Thread):
     def run(self):
         if self._running.is_set():
             return
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "PubSubWorkerThread is starting")
         self._running.set()
         while self._running.is_set():
             try:
@@ -102,6 +114,8 @@ class PubSubWorkerThread(threading.Thread):
                 self.redis_client.reconnect()
             except Exception as err:
                 traceback.print_exc(file=sys.stdout)
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "PubSubWorkerThread has stopped")
     #
     #
     def stop(self):
