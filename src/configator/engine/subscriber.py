@@ -92,8 +92,8 @@ class PubSubWorkerThread(threading.Thread):
         super(PubSubWorkerThread, self).__init__()
         self.daemon = daemon
         #
-        self.redis_client = redis_client
-        self.sleep_time = sleep_time
+        self._redis_client = redis_client
+        self._sleep_time = sleep_time
         #
         self._running = threading.Event()
     #
@@ -106,12 +106,12 @@ class PubSubWorkerThread(threading.Thread):
         self._running.set()
         while self._running.is_set():
             try:
-                pubsub = self.redis_client.pubsub
+                pubsub = self._redis_client.pubsub
                 while self._running.is_set():
-                    pubsub.get_message(ignore_subscribe_messages=True, timeout=self.sleep_time)
+                    pubsub.get_message(ignore_subscribe_messages=True, timeout=self._sleep_time)
                 pubsub.close()
             except redis.ConnectionError:
-                self.redis_client.reconnect()
+                self._redis_client.reconnect()
             except Exception as err:
                 traceback.print_exc(file=sys.stdout)
         if LOG.isEnabledFor(logging.DEBUG):

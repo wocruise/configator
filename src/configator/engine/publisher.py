@@ -15,16 +15,21 @@ class SettingPublisher(RedisClient):
         super(SettingPublisher, self).__init__(**kwargs)
     #
     #
-    def publish(self, message, postfix=None):
-        if postfix is None:
-            channel_name = CHANNEL_GROUP + postfix
+    def publish(self, message, label=None):
+        try:
+            self.publish_or_error(message, label=label)
+            return None
+        except Exception as err:
+            return err
+    #
+    #
+    def publish_or_error(self, message, label=None):
+        if label is None:
+            channel_name = CHANNEL_GROUP
         else:
-            channel_name = self.CHANNEL_PREFIX + postfix
+            channel_name = self.CHANNEL_PREFIX + label
         #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "publish() a message [%s] to channel [%s]", str(message), channel_name)
         #
-        try:
-            self.connect().publish(channel_name, message)
-        except Exception as err:
-            raise err
+        self.connect().publish(channel_name, message)

@@ -31,16 +31,25 @@ class RedisClient(object):
         if 'db' not in self.__connection_kwargs:
             self.__connection_kwargs['db'] = 0
         #
+        username = os.getenv('CONFIGATOR_' + 'REDIS_USERNAME')
+        if username:
+            self.__connection_kwargs['username'] = username
+        #
+        password = os.getenv('CONFIGATOR_' + 'REDIS_PASSWORD')
+        if password:
+            self.__connection_kwargs['password'] = password
+        #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
     #
     ##
-    def connect(self):
+    def connect(self, ping=False):
         waiting = True
         while waiting:
             try:
                 connection = self._connection
-                connection.ping()
+                if ping:
+                    connection.ping()
                 waiting = False
                 return connection
             except redis.ConnectionError:
