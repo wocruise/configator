@@ -3,23 +3,30 @@
 import logging
 import redis, os
 
-CHANNEL_GROUP = 'configator'
+DEFAULT_CHANNEL_GROUP = 'configator'
+DEFAULT_ENV_PREFIX = 'CONFIGATOR'
 
 LOG = logging.getLogger(__name__)
 
 class RedisClient(object):
     #
-    def __init__(self, **connection_kwargs):
+    def __init__(self, channel_group=None, env_prefix=None, **connection_kwargs):
+        #
+        self.CHANNEL_GROUP = channel_group if isinstance(channel_group, str) else DEFAULT_CHANNEL_GROUP
+        #
+        self.ENV_PREFIX = env_prefix if isinstance(env_prefix, str) else DEFAULT_ENV_PREFIX
+        env_prefix_lodash = self.ENV_PREFIX + '_'
+        #
         self.__connection_kwargs = connection_kwargs
         #
-        host = os.getenv('CONFIGATOR_' + 'REDIS_HOST')
+        host = os.getenv(env_prefix_lodash + 'REDIS_HOST')
         if host:
             self.__connection_kwargs['host'] = host
         #
         if not self.__connection_kwargs.get('host'):
             self.__connection_kwargs['host'] = 'localhost'
         #
-        port = os.getenv('CONFIGATOR_' + 'REDIS_PORT')
+        port = os.getenv(env_prefix_lodash + 'REDIS_PORT')
         if port:
             port = int(port)
             if port:
@@ -31,11 +38,11 @@ class RedisClient(object):
         if 'db' not in self.__connection_kwargs:
             self.__connection_kwargs['db'] = 0
         #
-        username = os.getenv('CONFIGATOR_' + 'REDIS_USERNAME')
+        username = os.getenv(env_prefix_lodash + 'REDIS_USERNAME')
         if username:
             self.__connection_kwargs['username'] = username
         #
-        password = os.getenv('CONFIGATOR_' + 'REDIS_PASSWORD')
+        password = os.getenv(env_prefix_lodash + 'REDIS_PASSWORD')
         if password:
             self.__connection_kwargs['password'] = password
         #
@@ -43,7 +50,7 @@ class RedisClient(object):
             LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
     #
     ##
-    def connect(self, ping=False):
+    def connect(self, ping:bool=False):
         waiting = True
         while waiting:
             try:

@@ -4,19 +4,18 @@ import atexit
 import logging
 import redis, threading, traceback, sys
 
-from configator.engine import RedisClient, CHANNEL_GROUP
+from configator.engine import RedisClient
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
 
 class SettingSubscriber(RedisClient):
     #
-    CHANNEL_PATTERN = CHANNEL_GROUP + '*'
-    #
     def __init__(self, *args, auto_stop=True, **kwargs):
         if auto_stop:
             atexit.register(self.stop)
         super(SettingSubscriber, self).__init__(**kwargs)
+        self.CHANNEL_PATTERN = self.CHANNEL_GROUP + '*'
     #
     ##
     @property
@@ -49,7 +48,7 @@ class SettingSubscriber(RedisClient):
         return thread
     #
     ##
-    __transformer = None
+    __transformer: Optional[Callable[[Dict], Tuple[Dict, Any]]] = None
     #
     def set_transformer(self, transformer: Callable[[Dict], Tuple[Dict, Any]]):
         if callable(transformer):
@@ -57,16 +56,16 @@ class SettingSubscriber(RedisClient):
         return self
     #
     ##
-    __event_mappings = None
+    __event_mappings: Optional[Dict[Callable[[Dict, Any], bool], Tuple[Callable[[Dict, Any], None],...]]] = None
     #
-    def add_event_handler(self, match: Callable[[Dict, Any], bool],
-            clear: Optional[Callable[[Dict, Any], None]],
-            reset: Optional[Callable[[Dict, Any], None]]):
+    def add_event_handler(self, match: Callable[[Dict, Any], bool], *reset: Callable[[Dict, Any], None]):
         if self.__event_mappings is None:
             self.__event_mappings = dict()
-        if not (callable(match) and (callable(clear) or callable(reset))):
-            raise ArgumentError('match-clear-reset must be callable')
-        self.__event_mappings[match] = (clear, reset)
+        if not callable(match):
+            raise ValueError('match must be callable')
+        if not reset:
+            raise ValueError('reset list must not be empty')
+        self.__event_mappings[match] = reset
         return self
     #
     def __process_event(self, message):
@@ -79,12 +78,10 @@ class SettingSubscriber(RedisClient):
             msg, err = (message, None)
         #
         for match, reaction in self.__event_mappings.items():
-            clear, reset = reaction
             if match(msg, err):
-                if callable(clear):
-                    clear(msg, err)
-                if callable(reset):
-                    reset(msg, err)
+                for reset in reaction:
+                    if callable(reset):
+                        reset(msg, err)
 
 
 class PubSubWorkerThread(threading.Thread):
