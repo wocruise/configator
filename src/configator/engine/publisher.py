@@ -4,7 +4,7 @@ import logging
 import json
 
 from configator.engine import RedisClient
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class SettingPublisher(RedisClient):
         self.CHANNEL_PREFIX = self.CHANNEL_GROUP + ':'
     #
     #
-    def publish(self, message, label:Optional[str]=None):
+    def publish(self, message: Union[Dict, bytes, str, int, float], label:Optional[str]=None):
         try:
             self.publish_or_error(message, label=label)
             return None
@@ -23,7 +23,7 @@ class SettingPublisher(RedisClient):
             return err
     #
     #
-    def publish_or_error(self, message, label:Optional[str]=None):
+    def publish_or_error(self, message: Union[Dict, bytes, str, int, float], label:Optional[str]=None):
         if label is None:
             channel_name = self.CHANNEL_GROUP
         else:

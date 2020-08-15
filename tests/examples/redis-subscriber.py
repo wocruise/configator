@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import __init__
-import sys, traceback
+import signal
 
 from configator.engine.subscriber import SettingSubscriber
 from configator.utils.function import match_by_label, transform_json_data
@@ -18,14 +18,14 @@ def s1(message, *args, **kwargs):
 s.set_transformer(transform_json_data)
 s.add_event_handler(match_by_label(b'PROXY_JOIN_SANDBOX'), c1, r1, s1)
 
+def signal_handler(signal, frame):
+    print()
+    print("[-] SIGINT received")
+    s.stop()
+
 if __name__ == "__main__":
-    try:
-        print("[+] starting subscriber")
-        s.start()
-        print("[-] waiting for messages")
-    except KeyboardInterrupt:
-        print("Shutdown requested...exiting")
-        s.stop()
-    except Exception:
-        traceback.print_exc(file=sys.stdout)
-        sys.exit(0)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    print("[+] starting subscriber")
+    s.start()
+    print("[-] waiting for messages")

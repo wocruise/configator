@@ -3,6 +3,8 @@
 import logging
 import redis, os
 
+from configator.utils.datatype import str_to_int
+
 DEFAULT_CHANNEL_GROUP = 'configator'
 DEFAULT_ENV_PREFIX = 'CONFIGATOR'
 
@@ -28,13 +30,17 @@ class RedisClient(object):
         #
         port = os.getenv(env_prefix_lodash + 'REDIS_PORT')
         if port:
-            port = int(port)
-            if port:
+            port, err = str_to_int(port)
+            if err is None and port > 0:
                 self.__connection_kwargs['port'] = port
-        #
         if not self.__connection_kwargs.get('port'):
             self.__connection_kwargs['port'] = 6379
         #
+        db = os.getenv(env_prefix_lodash + 'REDIS_DB')
+        if db:
+            db, err = str_to_int(db)
+            if err is None and type(db) == type(0):
+                self.__connection_kwargs['db'] = db
         if 'db' not in self.__connection_kwargs:
             self.__connection_kwargs['db'] = 0
         #

@@ -42,8 +42,8 @@ class SettingSubscriber(RedisClient):
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
-    def __run_in_thread(self, sleep_time=0):
-        thread = PubSubWorkerThread(self, sleep_time)
+    def __run_in_thread(self, sleep_time=0, daemon=False):
+        thread = PubSubWorkerThread(self, sleep_time, daemon=daemon)
         thread.start()
         return thread
     #
