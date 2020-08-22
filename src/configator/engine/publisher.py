@@ -15,7 +15,7 @@ class SettingPublisher(RedisClient):
         self.CHANNEL_PREFIX = self.CHANNEL_GROUP + ':'
     #
     #
-    def publish(self, message: Union[Dict, bytes, str, int, float], label:Optional[str]=None):
+    def publish(self, message: Union[Dict, bytes, str, int, float], label:Optional[Union[bytes,str]]=None):
         try:
             self.publish_or_error(message, label=label)
             return None
@@ -23,10 +23,14 @@ class SettingPublisher(RedisClient):
             return err
     #
     #
-    def publish_or_error(self, message: Union[Dict, bytes, str, int, float], label:Optional[str]=None):
+    def publish_or_error(self, message: Union[Dict, bytes, str, int, float], label:Optional[Union[bytes,str]]=None):
         if label is None:
             channel_name = self.CHANNEL_GROUP
         else:
+            if isinstance(label, bytes):
+                label = label.decode('utf-8')
+            else:
+                label = str(label)
             channel_name = self.CHANNEL_PREFIX + label
         #
         if isinstance(message, dict):

@@ -2,7 +2,9 @@
 
 import atexit
 import logging
-import redis, threading, traceback, sys
+import redis, threading
+import signal
+import traceback, sys
 
 from configator.engine import RedisClient
 from typing import Any, Callable, List, Tuple, Dict, Optional
@@ -41,6 +43,14 @@ class SettingSubscriber(RedisClient):
         self._destroy()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
+    #
+    def handle_sigint(self):
+        def signal_handler(signal, frame):
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "SIGINT received")
+            self.stop()
+        signal.signal(signal.SIGINT, signal_handler)
+        return self
     #
     def __run_in_thread(self, sleep_time=0, daemon=False):
         thread = PubSubWorkerThread(self, sleep_time, daemon=daemon)
