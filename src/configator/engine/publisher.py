@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import logging
-import json
 
 from configator.engine import RedisClient
+from configator.utils.function import json_dumps
 from typing import List, Tuple, Dict, Optional, Union
 
 LOG = logging.getLogger(__name__)
@@ -15,15 +15,19 @@ class SettingPublisher(RedisClient):
         self.CHANNEL_PREFIX = self.CHANNEL_GROUP + ':'
     #
     #
-    def publish(self, message: Union[Dict, bytes, str, int, float], label:Optional[Union[bytes,str]]=None):
+    def publish(self, message: Union[Dict, bytes, str, int, float],
+            label: Optional[Union[bytes,str]] = None,
+            with_datetime: Optional[bool] = False):
         try:
-            self.publish_or_error(message, label=label)
+            self.publish_or_error(message, label=label, with_datetime=with_datetime)
             return None
         except Exception as err:
             return err
     #
     #
-    def publish_or_error(self, message: Union[Dict, bytes, str, int, float], label:Optional[Union[bytes,str]]=None):
+    def publish_or_error(self, message: Union[Dict, bytes, str, int, float],
+            label: Optional[Union[bytes,str]] = None,
+            with_datetime: Optional[bool] = False):
         if label is None:
             channel_name = self.CHANNEL_GROUP
         else:
@@ -34,7 +38,11 @@ class SettingPublisher(RedisClient):
             channel_name = self.CHANNEL_PREFIX + label
         #
         if isinstance(message, dict):
-            message = json.dumps(message)
+            message, err = json_dumps(message, with_datetime=with_datetime)
+            if err:
+                if LOG.isEnabledFor(logging.ERROR):
+                    LOG.log(logging.ERROR, err)
+                raise err
         elif not self.__is_valid_type(message):
             errmsg = "Invalid type of input: '%s'. Only a dict, bytes, string, int or float accepted." % type(message)
             if LOG.isEnabledFor(logging.ERROR):
@@ -45,6 +53,12 @@ class SettingPublisher(RedisClient):
             LOG.log(logging.DEBUG, "publish() a message [%s] to channel [%s]", str(message), channel_name)
         #
         self.connect().publish(channel_name, message)
+    #
+    #
+    def close(self):
+        self._destroy()
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "SettingPublisher has closed")
     #
     #
     @staticmethod

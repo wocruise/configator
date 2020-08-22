@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 
+import datetime
 import json
-from typing import Any, Callable, List, Tuple, Dict, Optional
+from typing import Any, Callable, List, Tuple, Dict, Optional, Union
+
+
+def json_dumps(obj, indent=None, with_datetime=False):
+    if isinstance(obj, str):
+        return obj
+    try:
+        if with_datetime:
+            return json.dumps(obj, ensure_ascii=False, indent=indent, default=datetime_to_string), None
+        return json.dumps(obj, ensure_ascii=False, indent=indent), None
+    except Exception as exception:
+        return obj, exception
 
 
 def json_loads(data):
@@ -12,6 +24,12 @@ def json_loads(data):
         return json_dict, None
     except Exception as exception:
         return data, exception
+
+
+def datetime_to_string(o):
+    if o and isinstance(o, datetime.datetime):
+        return o.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
+    return o
 
 
 def transform_json_data(message:Dict) -> Tuple[Dict, Any]:
@@ -30,7 +48,9 @@ def transform_json_data(message:Dict) -> Tuple[Dict, Any]:
     return message, err
 
 
-def match_by_label(name):
+def match_by_label(name: Union[bytes, str]) -> Callable[[Dict, Any], bool]:
+    if isinstance(name, str):
+        name = bytes(name, 'utf-8')
     assert isinstance(name, bytes)
     def match_func(message, err, *args, **kwargs):
         if not isinstance(message, dict):

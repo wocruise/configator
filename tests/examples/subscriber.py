@@ -15,7 +15,7 @@ def s1(message, *args, **kwargs):
     print('post-processing for the setting #1')
 
 s.set_transformer(transform_json_data)
-s.add_event_handler(match_by_label(b'PROXY_JOIN_SANDBOX'), c1, r1, s1)
+s.add_event_handler(match_by_label('PROXY_JOIN_SANDBOX'), c1, r1, s1)
 
 if __name__ == "__main__":
     print("[+] starting subscriber")
