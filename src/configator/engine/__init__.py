@@ -2,8 +2,10 @@
 
 import logging
 import redis, os
+import time
 
 from configator.utils.datatype import str_to_int
+from typing import Any, Callable, List, Tuple, Dict, Optional, Union
 
 DEFAULT_CHANNEL_GROUP = 'configator'
 DEFAULT_ENV_PREFIX = 'CONFIGATOR'
@@ -18,6 +20,7 @@ class RedisClient(object):
         #
         self.ENV_PREFIX = env_prefix if isinstance(env_prefix, str) else DEFAULT_ENV_PREFIX
         env_prefix_lodash = self.ENV_PREFIX + '_'
+        #
         #
         self.__connection_kwargs = connection_kwargs
         #
@@ -54,6 +57,9 @@ class RedisClient(object):
         #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
+        #
+        #
+        self.__retry_counter = RetryStrategyCounter()
     #
     ##
     def connect(self, ping:bool=False):
@@ -63,17 +69,21 @@ class RedisClient(object):
                 connection = self._connection
                 if ping:
                     connection.ping()
+                    self.__retry_counter.reset()
                 waiting = False
                 return connection
             except redis.ConnectionError:
-                if LOG.isEnabledFor(logging.DEBUG):
-                    LOG.log(logging.DEBUG, "redis.ConnectionError")
+                delay = self.__retry_counter.invoke(self.retry_strategy)
+                if LOG.isEnabledFor(logging.ERROR):
+                    LOG.log(logging.ERROR, "redis.ConnectionError. Reconnect after %s (seconds)", str(delay))
+                if delay > 0:
+                    time.sleep(delay)
                 pass
     #
     #
     def reconnect(self):
         self._destroy()
-        return self.connect()
+        return self.connect(ping=True)
     #
     #
     __r = None
@@ -91,3 +101,55 @@ class RedisClient(object):
         if self.__r is not None:
             self.__r.close()
             self.__r = None
+    #
+    #
+    __retry_strategy = None
+    #
+    @property
+    def retry_strategy(self):
+        if self.__retry_strategy is None:
+            self.__retry_strategy = default_retry_strategy
+        return self.__retry_strategy
+    #
+    @retry_strategy.setter
+    def retry_strategy(self, func):
+        if callable(func):
+            self.__retry_strategy = func
+        return func
+
+
+def default_retry_strategy(attempt=None):
+    if attempt:
+        delay = min(0.5 * attempt, 5)
+    else:
+        delay = 1
+    # reconnect after
+    return delay
+
+
+class RetryStrategyCounter():
+    MIN_DELAY_TIME = 0.1 # 100ms
+    #
+    __attempt = 0
+    #
+    def invoke(self, retry_strategy: Callable[[Tuple[Any,...]], float]) -> float:
+        if not callable(retry_strategy):
+            return 0
+        #
+        self.__attempt += 1
+        #
+        delaytime = retry_strategy(attempt = self.__attempt)
+        #
+        if delaytime < self.MIN_DELAY_TIME:
+            delaytime = self.MIN_DELAY_TIME
+        #
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "Retry after %s (seconds)", str(delaytime))
+        #
+        return delaytime
+    #
+    #
+    def reset(self):
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "Reset the RetryStrategyCounter")
+        self.__attempt = 0
