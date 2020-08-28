@@ -56,7 +56,7 @@ class SettingPublisher(RedisClient):
     #
     #
     def close(self):
-        self._destroy()
+        super().close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingPublisher has closed")
     #

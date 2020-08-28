@@ -37,10 +37,13 @@ class SettingSubscriber(RedisClient):
         return self.__t
     #
     def stop(self):
+        return self.close()
+    #
+    def close(self):
         if self.__t is not None:
             self.__t.stop()
             self.__t = None
-        self._destroy()
+        super().close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
