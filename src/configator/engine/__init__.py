@@ -104,23 +104,23 @@ class RedisClient(object):
         self.__close()
     #
     #
-    __r = None
+    __connection = None
     __connection_lock = threading.RLock()
     #
     #
     def __connect(self):
         with self.__connection_lock:
-            if self.__r is None:
+            if self.__connection is None:
                 pool = redis.ConnectionPool(**self.__connection_kwargs)
-                self.__r = redis.Redis(connection_pool=pool)
-            return self.__r
+                self.__connection = redis.Redis(connection_pool=pool)
+            return self.__connection
     #
     #
     def __close(self):
         with self.__connection_lock:
-            if self.__r is not None:
-                self.__r.close()
-                self.__r = None
+            if self.__connection is not None:
+                self.__connection.close()
+                self.__connection = None
     #
     #
     __retry_strategy = None
@@ -151,20 +151,20 @@ class RetryStrategyCounter():
     MIN_DELAY_TIME = 0.1 # 100ms
     #
     __attempt = 0
-    __total_retry_time = 0
+    __total_retry_time = 0.0
     #
-    def delay(self, retry_strategy: Callable[[Tuple[Any,...]], float]) -> float:
+    def delay(self, retry_strategy: Callable[[int,float], float]) -> float:
         if not callable(retry_strategy):
             return 0
         #
         self.__attempt += 1
         #
-        delaytime = retry_strategy(attempt = self.__attempt, total_retry_time=self.__total_retry_time)
+        delaytime = retry_strategy(self.__attempt, self.__total_retry_time)
         #
         if delaytime < self.MIN_DELAY_TIME:
             delaytime = self.MIN_DELAY_TIME
         #
-        self.__total_retry_time += delaytime
+        self.__total_retry_time = self.__total_retry_time + delaytime
         #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "Retry after %s (seconds)", str(delaytime))

@@ -17,17 +17,18 @@ class SettingPublisher(RedisClient):
     #
     def publish(self, message: Union[Dict, bytes, str, int, float],
             label: Optional[Union[bytes,str]] = None,
-            with_datetime: Optional[bool] = False):
+            with_datetime: Optional[bool] = False,
+            raise_on_error: Optional[bool] = False) -> Optional[Exception]:
         try:
-            self.publish_or_error(message, label=label, with_datetime=with_datetime)
+            self.__publish_or_error(message, label=label, with_datetime=with_datetime)
             return None
         except Exception as err:
+            if raise_on_error:
+                raise err
             return err
     #
     #
-    def publish_or_error(self, message: Union[Dict, bytes, str, int, float],
-            label: Optional[Union[bytes,str]] = None,
-            with_datetime: Optional[bool] = False):
+    def __publish_or_error(self, message, label=None, with_datetime=False):
         if label is None:
             channel_name = self.CHANNEL_GROUP
         else:
