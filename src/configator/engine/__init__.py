@@ -63,15 +63,21 @@ class RedisClient(object):
         self.__retry_counter = RetryStrategyCounter()
         #
         #
-        self._running = threading.Event()
+        self.rewind()
+    #
+    ##
+    __running = threading.Event()
+    #
+    def rewind(self):
+        self.__running.set()
+        return self
     #
     ##
     def connect(self, pinging:bool=False, retrying:bool=True):
         waiting = True
-        self._running.set()
-        while waiting and self._running.is_set():
+        while waiting and self.__running.is_set():
             try:
-                connection = self._connection
+                connection = self.__connect()
                 if pinging:
                     connection.ping()
                     self.__retry_counter.reset()
@@ -94,25 +100,27 @@ class RedisClient(object):
     #
     #
     def close(self):
+        self.__running.clear()
         self.__close()
     #
     #
     __r = None
+    __connection_lock = threading.RLock()
     #
     #
-    @property
-    def _connection(self):
-        if self.__r is None:
-            pool = redis.ConnectionPool(**self.__connection_kwargs)
-            self.__r = redis.Redis(connection_pool=pool)
-        return self.__r
+    def __connect(self):
+        with self.__connection_lock:
+            if self.__r is None:
+                pool = redis.ConnectionPool(**self.__connection_kwargs)
+                self.__r = redis.Redis(connection_pool=pool)
+            return self.__r
     #
     #
     def __close(self):
-        self._running.clear()
-        if self.__r is not None:
-            self.__r.close()
-            self.__r = None
+        with self.__connection_lock:
+            if self.__r is not None:
+                self.__r.close()
+                self.__r = None
     #
     #
     __retry_strategy = None
