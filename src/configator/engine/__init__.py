@@ -73,17 +73,17 @@ class RedisClient(object):
         return self
     #
     ##
-    def connect(self, pinging:bool=False, retrying:bool=True):
+    def connect(self, pinging:bool=True, retrying:bool=False):
         waiting = True
         while waiting and self.__running.is_set():
             try:
-                connection = self.__connect()
-                if pinging:
-                    connection.ping()
+                connection = self.__connect(pinging=pinging)
+                if retrying:
                     self.__retry_counter.reset()
                 waiting = False
                 return connection
             except redis.ConnectionError as conn_error:
+                self.__close()
                 if not retrying:
                     raise conn_error
                 delay = self.__retry_counter.delay(self.retry_strategy)
@@ -96,7 +96,7 @@ class RedisClient(object):
     #
     def reconnect(self):
         self.__close()
-        return self.connect(pinging=True)
+        return self.connect(pinging=True, retrying=True)
     #
     #
     def close(self):
@@ -108,11 +108,14 @@ class RedisClient(object):
     __connection_lock = threading.RLock()
     #
     #
-    def __connect(self):
+    def __connect(self, pinging=True):
         with self.__connection_lock:
             if self.__connection is None:
                 pool = redis.ConnectionPool(**self.__connection_kwargs)
-                self.__connection = redis.Redis(connection_pool=pool)
+                conn = redis.Redis(connection_pool=pool)
+                if pinging:
+                    conn.ping()
+                self.__connection = conn
             return self.__connection
     #
     #
@@ -173,6 +176,13 @@ class RetryStrategyCounter():
     #
     #
     def reset(self):
-        if LOG.isEnabledFor(logging.DEBUG):
-            LOG.log(logging.DEBUG, "Reset the RetryStrategyCounter")
-        self.__attempt = 0
+        changed = False
+        if self.__attempt > 0:
+            self.__attempt = 0
+            changed = True
+        if self.__total_retry_time > 0:
+            self.__total_retry_time = 0.0
+            changed = True
+        if changed:
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "Reset the RetryStrategyCounter")

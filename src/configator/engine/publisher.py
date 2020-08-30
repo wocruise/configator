@@ -3,7 +3,7 @@
 import logging
 
 from configator.engine import RedisClient
-from configator.utils.function import json_dumps
+from configator.utils.function import assure_not_null, json_dumps
 from typing import List, Tuple, Dict, Optional, Union
 
 LOG = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class SettingPublisher(RedisClient):
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "publish() a message [%s] to channel [%s]", str(message), channel_name)
         #
-        self.connect().publish(channel_name, message)
+        assure_not_null(self.connect(pinging=False, retrying=False)).publish(channel_name, message)
     #
     #
     def close(self):

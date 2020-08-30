@@ -7,22 +7,21 @@ import signal
 import traceback, sys
 
 from configator.engine import RedisClient
+from configator.utils.function import assure_not_null
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
 
 class SettingSubscriber(RedisClient):
     #
-    def __init__(self, *args, auto_stop=True, **kwargs):
-        if auto_stop:
-            atexit.register(self.stop)
+    def __init__(self, *args, **kwargs):
         super(SettingSubscriber, self).__init__(**kwargs)
         self.CHANNEL_PATTERN = self.CHANNEL_GROUP + '*'
     #
     ##
     @property
     def pubsub(self):
-        ps = self.connect().pubsub()
+        ps = assure_not_null(self.connect()).pubsub()
         ps.psubscribe(**{self.CHANNEL_PATTERN: self.__process_event})
         return ps
     #
@@ -47,11 +46,16 @@ class SettingSubscriber(RedisClient):
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
+    #
+    def handle_atexit(self):
+        atexit.register(self.close)
+        return self
+    #
     def handle_sigint(self):
         def signal_handler(signal, frame):
             if LOG.isEnabledFor(logging.DEBUG):
                 LOG.log(logging.DEBUG, "SIGINT received")
-            self.stop()
+            self.close()
         signal.signal(signal.SIGINT, signal_handler)
         return self
     #
@@ -123,7 +127,9 @@ class PubSubWorkerThread(threading.Thread):
             except redis.ConnectionError:
                 self._redis_client.reconnect()
             except Exception as err:
-                traceback.print_exc(file=sys.stdout)
+                if LOG.isEnabledFor(logging.ERROR):
+                    LOG.log(logging.ERROR, err)
+                # traceback.print_exc(file=sys.stdout)
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "PubSubWorkerThread has stopped")
     #

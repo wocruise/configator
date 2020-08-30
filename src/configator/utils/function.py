@@ -62,3 +62,9 @@ def match_by_label(name: Union[bytes, str]) -> Callable[[Dict, Any], bool]:
         #
         return channel_name.endswith(name)
     return match_func
+
+
+def assure_not_null(conn):
+    if conn is None:
+        raise ValueError("The connecting is broken")
+    return conn
