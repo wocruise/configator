@@ -4,7 +4,7 @@ import setuptools
 
 setuptools.setup(
   name = 'configator',
-  version = '0.0.1',
+  version = '0.1.0',
   description = 'A simple configuration loader',
   author = 'acegik',
   license = 'GPL-3.0',
