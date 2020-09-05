@@ -6,7 +6,7 @@ import redis, threading
 import signal
 import traceback, sys
 
-from configator.engine import RedisClient
+from configator.engine.connector import RedisClient
 from configator.utils.function import assure_not_null
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
@@ -41,15 +41,20 @@ class SettingSubscriber(RedisClient):
     def close(self):
         if self.__t is not None:
             self.__t.stop()
+        super().close()
+        if self.__t is not None:
             self.__t.join()
             self.__t = None
-        super().close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
     #
     def handle_atexit(self):
-        atexit.register(self.close)
+        def atexit_handler():
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "AtExit occurred")
+            self.close()
+        atexit.register(atexit_handler)
         return self
     #
     def handle_sigint(self):

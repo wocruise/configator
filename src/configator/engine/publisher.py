@@ -2,7 +2,7 @@
 
 import logging
 
-from configator.engine import RedisClient
+from configator.engine.connector import RedisClient
 from configator.utils.function import assure_not_null, json_dumps
 from typing import List, Tuple, Dict, Optional, Union
 
