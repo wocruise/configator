@@ -41,6 +41,7 @@ class SettingSubscriber(RedisClient):
     def close(self):
         if self.__t is not None:
             self.__t.stop()
+            self.__t.join()
             self.__t = None
         super().close()
         if LOG.isEnabledFor(logging.DEBUG):

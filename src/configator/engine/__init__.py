@@ -20,10 +20,19 @@ class RedisClient(object):
         self.CHANNEL_GROUP = channel_group if isinstance(channel_group, str) else DEFAULT_CHANNEL_GROUP
         #
         self.ENV_PREFIX = env_prefix if isinstance(env_prefix, str) else DEFAULT_ENV_PREFIX
-        env_prefix_lodash = self.ENV_PREFIX + '_'
-        #
         #
         self.__connection_kwargs = connection_kwargs
+        #
+        self.__update_connection_kwargs_from_env()
+        #
+        self.__retry_counter = RetryStrategyCounter()
+        #
+        self.rewind()
+    #
+    #
+    def __update_connection_kwargs_from_env(self):
+        #
+        env_prefix_lodash = self.ENV_PREFIX + '_'
         #
         host = os.getenv(env_prefix_lodash + 'REDIS_HOST')
         if host:
@@ -58,12 +67,6 @@ class RedisClient(object):
         #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
-        #
-        #
-        self.__retry_counter = RetryStrategyCounter()
-        #
-        #
-        self.rewind()
     #
     ##
     __running = threading.Event()
