@@ -26,30 +26,33 @@ class SettingSubscriber(RedisClient):
         return ps
     #
     ##
-    __t = None
+    __pubsub_thread = None
+    __pubsub_lock = threading.RLock()
     #
     def start(self):
-        if self.__t is None:
-            self.__t = self.__run_in_thread(sleep_time=0.001)
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.log(logging.DEBUG, "SettingSubscriber has started")
-        return self.__t
+        with self.__pubsub_lock:
+            if self.__pubsub_thread is None:
+                self.__pubsub_thread = self.__run_in_thread(sleep_time=0.001)
+                if LOG.isEnabledFor(logging.DEBUG):
+                    LOG.log(logging.DEBUG, "SettingSubscriber has started")
+            return self.__pubsub_thread
     #
     def stop(self):
         return self.close()
     #
     def close(self):
-        if self.__t is not None:
-            self.__t.stop()
-        super().close()
-        if self.__t is not None:
-            self.__t.join()
-            self.__t = None
-        if LOG.isEnabledFor(logging.DEBUG):
-            LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
+        with self.__pubsub_lock:
+            if self.__pubsub_thread is not None:
+                self.__pubsub_thread.stop()
+            super().close()
+            if self.__pubsub_thread is not None:
+                self.__pubsub_thread.join()
+                self.__pubsub_thread = None
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
     #
-    def handle_atexit(self):
+    def hook_atexit(self):
         def atexit_handler():
             if LOG.isEnabledFor(logging.DEBUG):
                 LOG.log(logging.DEBUG, "AtExit occurred")
@@ -57,12 +60,21 @@ class SettingSubscriber(RedisClient):
         atexit.register(atexit_handler)
         return self
     #
-    def handle_sigint(self):
-        def signal_handler(signal, frame):
+    def hook_signal(self, signal_number=signal.SIGINT):
+        current_handler = signal.getsignal(signal_number)
+        def signal_handler(signalnum, frame):
             if LOG.isEnabledFor(logging.DEBUG):
-                LOG.log(logging.DEBUG, "SIGINT received")
+                LOG.log(logging.DEBUG, "SIGNAL[%d] received" % signalnum)
             self.close()
-        signal.signal(signal.SIGINT, signal_handler)
+            if callable(current_handler):
+                if LOG.isEnabledFor(logging.DEBUG):
+                    LOG.log(logging.DEBUG, "Invoke the default handler")
+                try:
+                    current_handler(signalnum, frame)
+                except KeyboardInterrupt:
+                    pass
+        removed_handler = signal.signal(signal_number, signal_handler)
+        assert current_handler == removed_handler
         return self
     #
     def __run_in_thread(self, sleep_time=0, daemon=False):
