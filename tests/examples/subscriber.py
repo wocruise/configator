@@ -20,8 +20,5 @@ s.add_event_handler(match_by_label('PROXY_JOIN_SANDBOX'), c1, r1, s1)
 
 if __name__ == "__main__":
     print("[+] starting subscriber")
-    try:
-        s.hook_signal().start()
-    except KeyboardInterrupt:
-        pass
+    s.hook_sigint().start()
     print("[-] waiting for messages")

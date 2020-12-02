@@ -4,7 +4,7 @@ import atexit
 import logging
 import redis, threading
 import signal
-import traceback, sys
+import traceback, sys, os
 
 from configator.engine.connector import RedisClient
 from configator.utils.function import assure_not_null
@@ -60,26 +60,26 @@ class SettingSubscriber(RedisClient):
         atexit.register(atexit_handler)
         return self
     #
-    def hook_signal(self, signal_number=signal.SIGINT):
-        current_handler = signal.getsignal(signal_number)
+    def hook_sigint(self, finished=True):
+        return self.hook_signal(signal_code=signal.SIGINT, finished=finished)
+    #
+    def hook_signal(self, signal_code=signal.SIGINT, finished=False):
+        current_handler = None
         def signal_handler(signalnum, frame):
             if LOG.isEnabledFor(logging.DEBUG):
                 LOG.log(logging.DEBUG, "SIGNAL[%d] received" % signalnum)
             self.close()
-            if callable(current_handler):
+            if not finished and callable(current_handler):
                 if LOG.isEnabledFor(logging.DEBUG):
                     LOG.log(logging.DEBUG, "Invoke the default handler")
-                try:
-                    current_handler(signalnum, frame)
-                except KeyboardInterrupt:
-                    pass
-        removed_handler = signal.signal(signal_number, signal_handler)
-        assert current_handler == removed_handler
+                current_handler(signalnum, frame)
+        current_handler = signal.signal(signal_code, signal_handler)
         return self
     #
-    def __run_in_thread(self, sleep_time=0, daemon=False):
+    def __run_in_thread(self, auto_start=True, sleep_time=0, daemon=False):
         thread = PubSubWorkerThread(self, sleep_time, daemon=daemon)
-        thread.start()
+        if auto_start:
+            thread.start()
         return thread
     #
     ##
