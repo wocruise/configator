@@ -7,7 +7,8 @@ import signal
 import traceback, sys, os
 
 from configator.engine.connector import RedisClient
-from configator.utils.function import assure_not_null
+from configator.engine.container import SettingCapsule
+from configator.utils.function import assure_not_null, match_by_label
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
@@ -93,6 +94,12 @@ class SettingSubscriber(RedisClient):
                 for reset in reaction:
                     if callable(reset):
                         reset(msg, err)
+    #
+    #
+    def register_receiver(self, capsule: SettingCapsule):
+        if isinstance(capsule, SettingCapsule):
+            self.add_event_handler(match_by_label(capsule.name), capsule.reset)
+        return capsule
 
 
 class PubSubWorkerThread(threading.Thread):

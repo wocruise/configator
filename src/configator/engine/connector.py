@@ -6,6 +6,7 @@ import threading
 import time
 
 from configator.utils.datatype import str_to_int
+from configator.utils.function import build_url
 from typing import Any, Callable, List, Tuple, Dict, Optional, Union
 
 DEFAULT_CHANNEL_GROUP = 'configator'
@@ -67,6 +68,8 @@ class RedisClient(object):
         #
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "redis connection kwargs: %s", str(self.__connection_kwargs))
+        #
+        self.__logging_url = build_url(self.__connection_kwargs, hide_secret=True)
     #
     ##
     __running = threading.Event()
@@ -91,7 +94,8 @@ class RedisClient(object):
                     raise conn_error
                 delay = self.__retry_counter.delay(self.retry_strategy)
                 if LOG.isEnabledFor(logging.ERROR):
-                    LOG.log(logging.ERROR, "redis.ConnectionError. Reconnect after %s (seconds)", str(delay))
+                    LOG.log(logging.ERROR, "redis.ConnectionError (%s). Reconnect after %s (seconds)",
+                            self.__logging_url, str(delay))
                 if delay > 0:
                     time.sleep(delay)
         return None

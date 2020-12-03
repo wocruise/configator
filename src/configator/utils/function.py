@@ -68,3 +68,23 @@ def assure_not_null(conn):
     if conn is None:
         raise ValueError("The connecting is broken")
     return conn
+
+
+def build_url(connection_args, hide_secret=False):
+    scheme = 'redis'
+    if connection_args.get('scheme'):
+        scheme = connection_args.get('scheme')
+    #
+    credential = ''
+    if connection_args.get('password'):
+        if hide_secret:
+            credential = '*' * len(connection_args.get('password'))
+        else:
+            credential = connection_args.get('password')
+    if connection_args.get('username') and credential:
+        credential = connection_args.get('username') + ':' + credential
+    if credential:
+        credential = credential + '@'
+    #
+    return "{_scheme_}://{credential}{host}:{port}/{db}".format(**connection_args,
+            _scheme_=scheme, credential=credential)

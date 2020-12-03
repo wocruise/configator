@@ -3,7 +3,7 @@
 import logging
 import threading
 
-from typing import Callable
+from typing import Callable, Dict, Optional
 
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class SettingCapsule():
             return self.__payload
     #
     #
-    def reset(self, message, err):
+    def reset(self, message: Optional[Dict] = None, err: Optional[Exception] = None):
         with self.__lock:
             self.__payload = None
             if LOG.isEnabledFor(logging.DEBUG):
