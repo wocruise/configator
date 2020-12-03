@@ -2,8 +2,9 @@
 
 import __init__
 
-from configator.engine.subscriber import SettingSubscriber
+from configator.engine import SettingSubscriber
 from configator.utils.function import match_by_label, transform_json_data
+from configator.utils.signfunc import hook_signal
 
 s = SettingSubscriber()
 
@@ -20,5 +21,6 @@ s.add_event_handler(match_by_label('PROXY_JOIN_SANDBOX'), c1, r1, s1)
 
 if __name__ == "__main__":
     print("[+] starting subscriber")
-    s.hook_sigint().start()
+    hook_signal(s.close)
+    s.start()
     print("[-] waiting for messages")

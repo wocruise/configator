@@ -52,30 +52,6 @@ class SettingSubscriber(RedisClient):
                 LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #
     #
-    def hook_atexit(self):
-        def atexit_handler():
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.log(logging.DEBUG, "AtExit occurred")
-            self.close()
-        atexit.register(atexit_handler)
-        return self
-    #
-    def hook_sigint(self, finished=True):
-        return self.hook_signal(signal_code=signal.SIGINT, finished=finished)
-    #
-    def hook_signal(self, signal_code=signal.SIGINT, finished=False):
-        current_handler = None
-        def signal_handler(signalnum, frame):
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.log(logging.DEBUG, "SIGNAL[%d] received" % signalnum)
-            self.close()
-            if not finished and callable(current_handler):
-                if LOG.isEnabledFor(logging.DEBUG):
-                    LOG.log(logging.DEBUG, "Invoke the default handler")
-                current_handler(signalnum, frame)
-        current_handler = signal.signal(signal_code, signal_handler)
-        return self
-    #
     def __run_in_thread(self, auto_start=True, sleep_time=0, daemon=False):
         thread = PubSubWorkerThread(self, sleep_time, daemon=daemon)
         if auto_start:
