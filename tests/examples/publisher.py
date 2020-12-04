@@ -3,7 +3,7 @@
 import __init__
 from datetime import datetime
 
-from configator.engine.publisher import SettingPublisher
+from configator.engine import SettingPublisher
 
 p = SettingPublisher()
 

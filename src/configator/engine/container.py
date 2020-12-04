@@ -15,9 +15,9 @@ class SettingCapsule():
     #
     #
     def __init__(self, name: str, load: Callable):
-        assert isinstance(name, str) and name, "name must be a string and not empty"
+        assert isinstance(name, str) and name, "[name] must be a string and not empty"
         self.__name = name
-        assert callable(load), "load must be a function"
+        assert callable(load), "[load] must be a function"
         self.__load = load
     #
     #

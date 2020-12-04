@@ -11,6 +11,7 @@ from typing import Any, Callable, List, Tuple, Dict, Optional, Union
 
 DEFAULT_CHANNEL_GROUP = 'configator'
 DEFAULT_ENV_PREFIX = 'CONFIGATOR'
+DEFAULT_DELAY_INTERVAL = 1
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +27,8 @@ class RedisClient(object):
         #
         self.__update_connection_kwargs_from_env()
         #
-        self.__retry_counter = RetryStrategyCounter()
+        self.__retry_counter = RetryStrategyCounter(on_retry_begin=self.__on_retry_begin,
+                on_retry_end=self.__on_retry_end)
         #
         self.rewind()
     #
@@ -71,6 +73,15 @@ class RedisClient(object):
         #
         self.__logging_url = build_url(self.__connection_kwargs, hide_secret=True)
     #
+    def __on_retry_begin(self, *args, **kwargs):
+        if LOG.isEnabledFor(logging.ERROR):
+            LOG.log(logging.ERROR, "redis.ConnectionError (%s), reconnecting ...", self.__logging_url)
+    #
+    def __on_retry_end(self, attempt, total_retry_time, *args, **kwargs):
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.log(logging.DEBUG, "Reconnect has completed successfully with %d retries in %s second(s)",
+                    attempt, total_retry_time)
+    #
     ##
     __running = threading.Event()
     #
@@ -93,9 +104,10 @@ class RedisClient(object):
                 if not retrying:
                     raise conn_error
                 delay = self.__retry_counter.delay(self.retry_strategy)
-                if LOG.isEnabledFor(logging.ERROR):
-                    LOG.log(logging.ERROR, "redis.ConnectionError (%s). Reconnect after %s (seconds)",
-                            self.__logging_url, str(delay))
+                if delay > DEFAULT_DELAY_INTERVAL:
+                    while delay > DEFAULT_DELAY_INTERVAL and self.__running.is_set():
+                        time.sleep(DEFAULT_DELAY_INTERVAL)
+                        delay = delay - DEFAULT_DELAY_INTERVAL
                 if delay > 0:
                     time.sleep(delay)
         return None
@@ -163,7 +175,22 @@ class RetryStrategyCounter():
     __attempt = 0
     __total_retry_time = 0.0
     #
+    def __init__(self, on_retry_begin:Optional[Callable]=None, on_retry_end:Optional[Callable]=None, **kwargs):
+        self.__on_retry_begin = on_retry_begin
+        self.__on_retry_end = on_retry_end
+    #
+    @property
+    def attempt(self):
+        return self.__attempt
+    #
+    @property
+    def total_retry_time(self):
+        return self.__total_retry_time
+    #
     def delay(self, retry_strategy: Callable[[int,float], float]) -> float:
+        if not self.__attempt and callable(self.__on_retry_begin):
+            self.__on_retry_begin(self.__attempt, self.__total_retry_time)
+        #
         if not callable(retry_strategy):
             return 0
         #
@@ -177,12 +204,14 @@ class RetryStrategyCounter():
         self.__total_retry_time = self.__total_retry_time + delaytime
         #
         if LOG.isEnabledFor(logging.DEBUG):
-            LOG.log(logging.DEBUG, "Retry after %s (seconds)", str(delaytime))
+            LOG.log(logging.DEBUG, "Retry#%d after %s (seconds)", self.__attempt, str(delaytime))
         #
         return delaytime
     #
     #
     def reset(self):
+        attempt = self.__attempt
+        total_retry_time = self.__total_retry_time
         changed = False
         if self.__attempt > 0:
             self.__attempt = 0
@@ -190,6 +219,5 @@ class RetryStrategyCounter():
         if self.__total_retry_time > 0:
             self.__total_retry_time = 0.0
             changed = True
-        if changed:
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.log(logging.DEBUG, "Reset the RetryStrategyCounter")
+        if changed and callable(self.__on_retry_end):
+            self.__on_retry_end(attempt, total_retry_time)

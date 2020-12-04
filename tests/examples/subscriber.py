@@ -21,6 +21,6 @@ s.add_event_handler(match_by_label('PROXY_JOIN_SANDBOX'), c1, r1, s1)
 
 if __name__ == "__main__":
     print("[+] starting subscriber")
-    hook_signal(s.close)
+    hook_signal(s.close, finished=True)
     s.start()
     print("[-] waiting for messages")
