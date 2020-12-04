@@ -8,13 +8,19 @@ from typing import List, Tuple, Dict, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
-class SettingPublisher(RedisClient):
+class SettingPublisher():
     #
     def __init__(self, *args, **kwargs):
+        self.__connector = RedisClient(**kwargs)
+        self.CHANNEL_PREFIX = self.__connector.CHANNEL_GROUP + ':'
         super(SettingPublisher, self).__init__(**kwargs)
-        self.CHANNEL_PREFIX = self.CHANNEL_GROUP + ':'
     #
+    ##
+    @property
+    def connector(self):
+        return self.__connector
     #
+    ##
     def publish(self, message: Union[Dict, bytes, str, int, float],
             label: Optional[Union[bytes,str]] = None,
             with_datetime: Optional[bool] = False,
@@ -30,7 +36,7 @@ class SettingPublisher(RedisClient):
     #
     def __publish_or_error(self, message, label=None, with_datetime=False):
         if label is None:
-            channel_name = self.CHANNEL_GROUP
+            channel_name = self.__connector.CHANNEL_GROUP
         else:
             if isinstance(label, bytes):
                 label = label.decode('utf-8')
@@ -53,11 +59,11 @@ class SettingPublisher(RedisClient):
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "publish() a message [%s] to channel [%s]", str(message), channel_name)
         #
-        assure_not_null(self.connect(pinging=False, retrying=False)).publish(channel_name, message)
+        assure_not_null(self.__connector.connect(pinging=False, retrying=False)).publish(channel_name, message)
     #
     #
     def close(self):
-        super().close()
+        self.__connector.close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingPublisher has closed")
     #

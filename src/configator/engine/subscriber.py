@@ -13,16 +13,22 @@ from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
 
-class SettingSubscriber(RedisClient):
+class SettingSubscriber(object):
     #
     def __init__(self, *args, **kwargs):
-        super(SettingSubscriber, self).__init__(**kwargs)
-        self.CHANNEL_PATTERN = self.CHANNEL_GROUP + '*'
+        self.__connector = RedisClient(**kwargs)
+        self.CHANNEL_PATTERN = self.__connector.CHANNEL_GROUP + '*'
+        super(SettingSubscriber, self).__init__()
+    #
+    ##
+    @property
+    def connector(self):
+        return self.__connector
     #
     ##
     @property
     def pubsub(self):
-        ps = assure_not_null(self.connect()).pubsub()
+        ps = assure_not_null(self.__connector.connect()).pubsub()
         ps.psubscribe(**{self.CHANNEL_PATTERN: self.__process_event})
         return ps
     #
@@ -45,7 +51,7 @@ class SettingSubscriber(RedisClient):
         with self.__pubsub_lock:
             if self.__pubsub_thread is not None:
                 self.__pubsub_thread.stop()
-            super().close()
+            self.__connector.close()
             if self.__pubsub_thread is not None:
                 self.__pubsub_thread.join()
                 self.__pubsub_thread = None
@@ -103,11 +109,11 @@ class SettingSubscriber(RedisClient):
 
 
 class PubSubWorkerThread(threading.Thread):
-    def __init__(self, redis_client, sleep_time, daemon=False):
+    def __init__(self, subscriber, sleep_time, daemon=False):
         super(PubSubWorkerThread, self).__init__()
         self.daemon = daemon
         #
-        self._redis_client = redis_client
+        self._subscriber = subscriber
         self._sleep_time = sleep_time
         #
         self._running = threading.Event()
@@ -121,12 +127,12 @@ class PubSubWorkerThread(threading.Thread):
         self._running.set()
         while self._running.is_set():
             try:
-                pubsub = self._redis_client.pubsub
+                pubsub = self._subscriber.pubsub
                 while self._running.is_set():
                     pubsub.get_message(ignore_subscribe_messages=True, timeout=self._sleep_time)
                 pubsub.close()
             except redis.ConnectionError:
-                self._redis_client.reconnect()
+                self._subscriber.connector.reconnect()
             except Exception as err:
                 if LOG.isEnabledFor(logging.ERROR):
                     LOG.log(logging.ERROR, err)
