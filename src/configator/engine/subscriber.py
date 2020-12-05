@@ -15,8 +15,13 @@ LOG = logging.getLogger(__name__)
 
 class SettingSubscriber(object):
     #
-    def __init__(self, *args, **kwargs):
-        self.__connector = RedisClient(**kwargs)
+    def __init__(self, *args, connector=None, **kwargs):
+        if isinstance(connector, RedisClient):
+            self.__use_shared_connector = True
+            self.__connector = connector
+        else:
+            self.__use_shared_connector = False
+            self.__connector = RedisClient(**kwargs)
         self.CHANNEL_PATTERN = self.__connector.CHANNEL_GROUP + '*'
         super(SettingSubscriber, self).__init__()
     #
@@ -51,10 +56,14 @@ class SettingSubscriber(object):
         with self.__pubsub_lock:
             if self.__pubsub_thread is not None:
                 self.__pubsub_thread.stop()
-            self.__connector.close()
+            #
+            if not self.__use_shared_connector:
+                self.__connector.close()
+            #
             if self.__pubsub_thread is not None:
                 self.__pubsub_thread.join()
                 self.__pubsub_thread = None
+            #
             if LOG.isEnabledFor(logging.DEBUG):
                 LOG.log(logging.DEBUG, "SettingSubscriber has stopped")
     #

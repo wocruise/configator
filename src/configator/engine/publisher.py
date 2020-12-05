@@ -8,11 +8,18 @@ from typing import List, Tuple, Dict, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
-class SettingPublisher():
+class SettingPublisher(object):
     #
-    def __init__(self, *args, **kwargs):
-        self.__connector = RedisClient(**kwargs)
+    def __init__(self, *args, connector=None, **kwargs):
+        if isinstance(connector, RedisClient):
+            self.__use_shared_connector = True
+            self.__connector = connector
+        else:
+            self.__use_shared_connector = False
+            self.__connector = RedisClient(**kwargs)
+        #
         self.CHANNEL_PREFIX = self.__connector.CHANNEL_GROUP + ':'
+        #
         super(SettingPublisher, self).__init__(**kwargs)
     #
     ##
@@ -63,7 +70,8 @@ class SettingPublisher():
     #
     #
     def close(self):
-        self.__connector.close()
+        if not self.__use_shared_connector:
+            self.__connector.close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingPublisher has closed")
     #
