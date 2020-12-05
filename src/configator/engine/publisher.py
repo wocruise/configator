@@ -51,14 +51,14 @@ class SettingPublisher(object):
                 label = str(label)
             channel_name = self.CHANNEL_PREFIX + label
         #
-        if isinstance(message, dict):
+        if isinstance(message, (dict, list)):
             message, err = json_dumps(message, with_datetime=with_datetime)
             if err:
                 if LOG.isEnabledFor(logging.ERROR):
                     LOG.log(logging.ERROR, err)
                 raise err
         elif not self.__is_valid_type(message):
-            errmsg = "Invalid type of input: '%s'. Only a dict, bytes, string, int or float accepted." % type(message)
+            errmsg = "Invalid type of input: '%s'. Only a dict, list, bytes, string, int or float accepted." % type(message)
             if LOG.isEnabledFor(logging.ERROR):
                 LOG.log(logging.ERROR, errmsg)
             raise ValueError(errmsg)

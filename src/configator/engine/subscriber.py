@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import atexit
 import logging
-import redis, threading
+import redis
 import signal
+import threading
 import traceback, sys, os
 
 from configator.engine.connector import RedisClient
