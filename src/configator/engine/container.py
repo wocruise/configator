@@ -5,7 +5,7 @@ import threading
 import time
 
 from readerwriterlock import rwlock
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional, Union
 
 LOG = logging.getLogger(__name__)
 
@@ -76,23 +76,29 @@ class SettingCapsule():
             return self.__data
     #
     #
-    def reset(self, message: Optional[Dict] = None, err: Optional[Exception] = None, lazy_load=False, **kwargs):
+    def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         with self.__rwhandler.gen_wlock():
             if callable(self.__on_reset):
                 self.__on_reset(self.__name, time.time())
             if lazy_load:
                 self.__data = None
             else:
-                self.__data = self.__reload()
+                args = []
+                kwargs = {}
+                if isinstance(parameters, dict):
+                    kwargs = parameters
+                elif isinstance(parameters, list):
+                    args = parameters
+                self.__data = self.__reload(*args, **kwargs)
         return self
     #
     #
-    def __reload(self):
+    def __reload(self, *args, **kwargs):
         try:
             if callable(self.__on_pre_load):
                 self.__on_pre_load(self.__name, time.time())
             #
-            result = self.__load()
+            result = self.__load(*args, **kwargs)
             #
             if callable(self.__on_post_load):
                 self.__on_post_load(self.__name, time.time())

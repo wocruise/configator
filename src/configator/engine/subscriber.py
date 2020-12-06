@@ -8,7 +8,7 @@ import traceback, sys, os
 
 from configator.engine.connector import RedisClient
 from configator.engine.container import SettingCapsule
-from configator.utils.function import assure_not_null, match_by_label
+from configator.utils.function import assure_not_null, match_by_label, extract_parameters
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
@@ -112,8 +112,10 @@ class SettingSubscriber(object):
     #
     #
     def register_receiver(self, capsule: SettingCapsule):
+        def wrap_capsule_reset(message, err):
+            return capsule.reset(parameters=extract_parameters(message, err))
         if isinstance(capsule, SettingCapsule):
-            self.add_event_handler(match_by_label(capsule.name), capsule.reset)
+            self.add_event_handler(match_by_label(capsule.name), wrap_capsule_reset)
         return capsule
 
 

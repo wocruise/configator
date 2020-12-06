@@ -88,3 +88,11 @@ def build_url(connection_args, hide_secret=False):
     #
     return "{_scheme_}://{credential}{host}:{port}/{db}".format(**connection_args,
             _scheme_=scheme, credential=credential)
+
+
+def extract_parameters(message, err):
+    if not err and isinstance(message, dict):
+        params = message.get('data')
+        if isinstance(params, (dict, list)):
+            return params
+    return None
