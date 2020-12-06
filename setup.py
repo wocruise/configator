@@ -4,8 +4,8 @@ import setuptools
 
 setuptools.setup(
   name = 'configator',
-  version = '0.1.2',
-  description = 'A simple configuration loader',
+  version = '0.1.3',
+  description = 'A simple CONFIGuration propagATOR',
   author = 'skelethon',
   license = 'GPL-3.0',
   url = 'https://github.com/skelethon/configator',
