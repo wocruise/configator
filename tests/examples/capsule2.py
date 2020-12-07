@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+from capsule1 import Controller
+
 import logging
 import time, threading
 from configator.engine import SettingSubscriber
+from configator.extensions.logging import LoggingConfigUpdater
 from configator.utils.function import transform_json_data
 from configator.utils.signfunc import hook_signal
-from capsule1 import Controller
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,8 @@ class SimpleServerThread(threading.Thread):
         self._sleep_time = sleep_time
         #
         self._running = threading.Event()
+        #
+        self._counter = 0
     #
     #
     def run(self):
@@ -26,17 +30,23 @@ class SimpleServerThread(threading.Thread):
         self._running.set()
         while self._running.is_set():
             time.sleep(1)
-            print('Ping: ' + str(self._controller.use_data()))
+            self._counter += 1
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.log(logging.DEBUG, 'Ping[%d]: %s' % (self._counter, str(self._controller.use_data())))
     #
     #
     def stop(self):
         self._running.clear()
 
 if __name__ == "__main__":
-    controller = Controller()
     subscriber = SettingSubscriber()
-    subscriber.set_transformer(transform_json_data)
+    #
+    controller = Controller()
     subscriber.register_receiver(controller.capsule)
+    #
+    logging_updater = LoggingConfigUpdater()
+    subscriber.register_receiver(logging_updater.capsule)
+    #
     server = SimpleServerThread(controller)
     def shutdown():
         server.stop()

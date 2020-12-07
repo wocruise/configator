@@ -8,7 +8,7 @@ import traceback, sys, os
 
 from configator.engine.connector import RedisClient
 from configator.engine.container import SettingCapsule
-from configator.utils.function import assure_not_null, match_by_label, extract_parameters
+from configator.utils.function import assure_not_null, match_by_label, extract_parameters, transform_json_data
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)
@@ -22,7 +22,11 @@ class SettingSubscriber(object):
         else:
             self.__use_shared_connector = False
             self.__connector = RedisClient(**kwargs)
+        #
+        self.__transformer = transform_json_data
+        #
         self.CHANNEL_PATTERN = self.__connector.CHANNEL_GROUP + '*'
+        #
         super(SettingSubscriber, self).__init__()
     #
     ##
@@ -147,7 +151,7 @@ class PubSubWorkerThread(threading.Thread):
             except Exception as err:
                 if LOG.isEnabledFor(logging.ERROR):
                     LOG.log(logging.ERROR, err)
-                # traceback.print_exc(file=sys.stdout)
+                traceback.print_exc(file=sys.stdout)
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "PubSubWorkerThread has stopped")
     #

@@ -31,10 +31,10 @@ class Controller():
         }
     #
     def use_data(self):
-        return self.__capsule.data
+        return self.capsule.data
     #
     def refresh(self):
-        self.__capsule.reset()
+        self.capsule.reset()
         return None
     #
     @staticmethod
