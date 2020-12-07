@@ -10,27 +10,27 @@ from typing import Callable, Dict, List, Optional, Union
 LOG = logging.getLogger(__name__)
 
 class SettingCapsule():
-    __name = None
-    __load = None
-    __data = None
+    __label = None
+    __payload = None
+    __loader = None
     __on_access = None
     __on_pre_load = None
     __on_post_load = None
     __on_load_error = None
-    __on_reset = None
+    __on_refresh = None
     #
     #
-    def __init__(self, name: str, load: Callable,
+    def __init__(self, label: str, loader: Callable,
             on_access:Optional[Callable]=None,
             on_pre_load:Optional[Callable]=None,
             on_post_load:Optional[Callable]=None,
             on_load_error:Optional[Callable]=None,
-            on_reset:Optional[Callable]=None):
-        assert isinstance(name, str) and name, "[name] must be a string and not empty"
-        self.__name = name
+            on_refresh:Optional[Callable]=None):
+        assert isinstance(label, str) and label, "[label] must be a string and not empty"
+        self.__label = label
         #
-        assert callable(load), "[load] must be a function"
-        self.__load = load
+        assert callable(loader), "[loader] must be a function"
+        self.__loader = loader
         #
         if callable(on_access):
             self.__on_access = on_access
@@ -50,10 +50,10 @@ class SettingCapsule():
         else:
             self.__on_load_error = default_on_load_error
         #
-        if callable(on_reset):
-            self.__on_reset = on_reset
+        if callable(on_refresh):
+            self.__on_refresh = on_refresh
         else:
-            self.__on_reset = default_on_reset
+            self.__on_refresh = default_on_refresh
         #
         self.__load_lock = threading.RLock()
         self.__rwhandler = rwlock.RWLockFairD()
@@ -61,27 +61,42 @@ class SettingCapsule():
     #
     @property
     def name(self):
-        return self.__name
-    #
+        return self.label
     #
     @property
     def data(self):
-        with self.__rwhandler.gen_rlock():
-            if callable(self.__on_access):
-                self.__on_access(self.__name, time.time())
-            if self.__data is None:
-                with self.__load_lock:
-                    if self.__data is None:
-                        self.__data = self.__reload()
-            return self.__data
-    #
+        return self.payload
     #
     def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
+        return self.refresh(parameters, lazy_load=lazy_load, **kwargs)
+    #
+    #
+    @property
+    def label(self):
+        return self.__label
+    #
+    @property
+    def content(self):
+        return self.payload
+    #
+    @property
+    def payload(self):
+        with self.__rwhandler.gen_rlock():
+            if callable(self.__on_access):
+                self.__on_access(self.__label, time.time())
+            if self.__payload is None:
+                with self.__load_lock:
+                    if self.__payload is None:
+                        self.__payload = self.__reload()
+            return self.__payload
+    #
+    #
+    def refresh(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         with self.__rwhandler.gen_wlock():
-            if callable(self.__on_reset):
-                self.__on_reset(self.__name, time.time())
+            if callable(self.__on_refresh):
+                self.__on_refresh(self.__label, time.time())
             if lazy_load:
-                self.__data = None
+                self.__payload = None
             else:
                 args = []
                 kwargs = {}
@@ -89,39 +104,39 @@ class SettingCapsule():
                     kwargs = parameters
                 elif isinstance(parameters, list):
                     args = parameters
-                self.__data = self.__reload(*args, **kwargs)
+                self.__payload = self.__reload(*args, **kwargs)
         return self
     #
     #
     def __reload(self, *args, **kwargs):
         try:
             if callable(self.__on_pre_load):
-                self.__on_pre_load(self.__name, time.time())
+                self.__on_pre_load(self.__label, time.time())
             #
-            result = self.__load(*args, **kwargs)
+            result = self.__loader(*args, **kwargs, __content__=self.__payload)
             #
             if callable(self.__on_post_load):
-                self.__on_post_load(self.__name, time.time())
+                self.__on_post_load(self.__label, time.time())
             #
             return result
         except Exception as exception:
             if callable(self.__on_load_error):
-                self.__on_load_error(self.__name, time.time(), exception)
+                self.__on_load_error(self.__label, time.time(), exception)
             raise exception
 
 
-def default_on_reset(name, timestamp):
+def default_on_refresh(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] reset the [data] to None', name)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] refresh the content', label)
 
-def default_on_pre_load(name, timestamp):
+def default_on_pre_load(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] invoke the load() to load the data', name)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] invoke the loader to load the data', label)
 
-def default_on_post_load(name, timestamp):
+def default_on_post_load(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] save result of load() to the store', name)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] save the result of loader to the buffer', label)
 
-def default_on_load_error(name, timestamp, error):
+def default_on_load_error(label, timestamp, error):
     if LOG.isEnabledFor(logging.ERROR):
-        LOG.log(logging.ERROR, 'SettingCapsule[%s] error on call to load() function', name)
+        LOG.log(logging.ERROR, 'SettingCapsule[%s] error on call to loader function', label)

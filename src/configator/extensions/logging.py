@@ -6,8 +6,8 @@ from datetime import datetime
 from configator.engine import SettingCapsule
 
 class LoggingConfigUpdater():
-    def __init__(self, *args, name='LOGGING_CONFIG', level_mappings=None, **kwargs):
-        self.__capsule = SettingCapsule(name=name, load=self.load)
+    def __init__(self, *args, label='LOGGING_CONFIG', level_mappings=None, **kwargs):
+        self.__capsule = SettingCapsule(label=label, loader=self.update)
     #
     #
     @property
@@ -15,7 +15,7 @@ class LoggingConfigUpdater():
         return self.__capsule
     #
     #
-    def load(self, *args, **kwargs):
+    def update(self, *args, **kwargs):
         if 'change_level_tasks' in kwargs:
             return self.change_level_tasks(kwargs['change_level_tasks'])
         return None

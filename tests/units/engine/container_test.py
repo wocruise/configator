@@ -31,9 +31,10 @@ class SettingCapsule__test(unittest.TestCase):
         cat = dict()
         for result in results:
             if isinstance(result, dict):
-                if cat.get(result.get('timestamp')) is None:
-                    cat[result.get('timestamp')] = []
-                cat[result.get('timestamp')].append(result)
+                timestamp = result.get('timestamp')
+                if cat.get(timestamp) is None:
+                    cat[timestamp] = []
+                cat[timestamp].append(result)
         #
         #
         self.assertEqual(len(cat), 2)

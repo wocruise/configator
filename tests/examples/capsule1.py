@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 class Controller():
     def __init__(self, *args, **kwargs):
-        self.__capsule = SettingCapsule(name='CAPSULE_EXAMPLE', load=self.load, on_reset=self.on_reset)
+        self.__capsule = SettingCapsule(label='CAPSULE_EXAMPLE', loader=self.load, on_refresh=self.on_refresh)
     #
     @property
     def capsule(self):
@@ -31,14 +31,14 @@ class Controller():
         }
     #
     def use_data(self):
-        return self.capsule.data
+        return self.capsule.content
     #
     def refresh(self):
-        self.capsule.reset()
+        self.capsule.refresh()
         return None
     #
     @staticmethod
-    def on_reset(name, timestamp):
+    def on_refresh(name, timestamp):
         print('Reset the [' + name + '] @ ' + str(timestamp))
 
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     for result in results:
         if isinstance(result, dict):
             timestamp = result.get('timestamp')
-            if cat.get() is None:
+            if cat.get(timestamp) is None:
                 cat[timestamp] = []
             cat[timestamp].append(result)
 
