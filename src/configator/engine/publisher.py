@@ -20,7 +20,7 @@ class SettingPublisher(object):
         #
         self.CHANNEL_PREFIX = self.__connector.CHANNEL_GROUP + ':'
         #
-        super(SettingPublisher, self).__init__(**kwargs)
+        super(SettingPublisher, self).__init__()
     #
     ##
     @property
