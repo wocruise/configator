@@ -22,9 +22,9 @@ class SettingCapsule__test(unittest.TestCase):
             results = list()
             for i in range(total):
                 if i == 3:
-                    futures.append(executor.submit(controller.refresh))
+                    futures.append(executor.submit(controller.capsule.refresh))
                 else:
-                    futures.append(executor.submit(controller.use_data))
+                    futures.append(executor.submit(controller.capsule.payload))
             for future in as_completed(futures):
                 results.append(future.result())
         #
@@ -50,16 +50,13 @@ class SettingCapsule__test(unittest.TestCase):
 
 class Controller():
     def __init__(self, *args, **kwargs):
-        self.__capsule = SettingCapsule(label='example', loader=self.load)
+        self.__capsule = SettingCapsule(label='example', loader=self.__load)
     #
-    def load(self):
+    @property
+    def capsule(self):
+        return self.__capsule
+    #
+    def __load(self, *args, **kwargs):
         return {
             "timestamp": datetime.now().timestamp()
         }
-    #
-    def use_data(self):
-        return self.__capsule.content
-    #
-    def refresh(self):
-        self.__capsule.refresh()
-        return None

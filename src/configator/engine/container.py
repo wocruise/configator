@@ -79,7 +79,6 @@ class SettingCapsule():
     def content(self):
         return self.payload
     #
-    @property
     def payload(self):
         with self.__rwhandler.gen_rlock():
             if callable(self.__on_access):
