@@ -131,7 +131,7 @@ def default_on_refresh(label, timestamp):
 
 def default_on_pre_load(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] invoke the loader to load the data', label)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] invoke the loader to load the content', label)
 
 def default_on_post_load(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
@@ -139,4 +139,4 @@ def default_on_post_load(label, timestamp):
 
 def default_on_load_error(label, timestamp, error):
     if LOG.isEnabledFor(logging.ERROR):
-        LOG.log(logging.ERROR, 'SettingCapsule[%s] error on call to loader function', label)
+        LOG.log(logging.ERROR, 'SettingCapsule[%s] error in loader function call', label)

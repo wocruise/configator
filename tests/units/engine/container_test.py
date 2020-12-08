@@ -50,7 +50,7 @@ class SettingCapsule__test(unittest.TestCase):
 
 class Controller():
     def __init__(self, *args, **kwargs):
-        self.__capsule = SettingCapsule(name='example', load=self.load)
+        self.__capsule = SettingCapsule(label='example', loader=self.load)
     #
     def load(self):
         return {
@@ -58,8 +58,8 @@ class Controller():
         }
     #
     def use_data(self):
-        return self.__capsule.data
+        return self.__capsule.content
     #
     def refresh(self):
-        self.__capsule.reset()
+        self.__capsule.refresh()
         return None
