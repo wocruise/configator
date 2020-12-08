@@ -65,7 +65,7 @@ class SettingCapsule():
     #
     @property
     def data(self):
-        return self.payload
+        return self.content
     #
     def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         return self.refresh(parameters, lazy_load=lazy_load, **kwargs)
@@ -77,7 +77,7 @@ class SettingCapsule():
     #
     @property
     def content(self):
-        return self.payload
+        return self.payload()
     #
     def payload(self):
         with self.__rwhandler.gen_rlock():
@@ -88,7 +88,6 @@ class SettingCapsule():
                     if self.__payload is None:
                         self.__payload = self.__reload()
             return self.__payload
-    #
     #
     def refresh(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         with self.__rwhandler.gen_wlock():
