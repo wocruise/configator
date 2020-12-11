@@ -66,7 +66,7 @@ class SettingPublisher(object):
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "publish() a message [%s] to channel [%s]", str(message), channel_name)
         #
-        assure_not_null(self.__connector.connect(pinging=False, retrying=False)).publish(channel_name, message)
+        self.__open_connection().publish(channel_name, message)
     #
     #
     def close(self):
@@ -74,6 +74,10 @@ class SettingPublisher(object):
             self.__connector.close()
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.log(logging.DEBUG, "SettingPublisher has closed")
+    #
+    #
+    def __open_connection(self):
+        return assure_not_null(self.__connector.rewind().connect(pinging=False, retrying=False))
     #
     #
     @staticmethod

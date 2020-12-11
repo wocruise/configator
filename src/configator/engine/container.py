@@ -20,7 +20,7 @@ class SettingCapsule():
     __on_refresh = None
     #
     #
-    def __init__(self, label: str, loader: Callable,
+    def __init__(self, label: str, loader: Callable, lazy_load:bool=True,
             on_access:Optional[Callable]=None,
             on_pre_load:Optional[Callable]=None,
             on_post_load:Optional[Callable]=None,
@@ -57,6 +57,9 @@ class SettingCapsule():
         #
         self.__load_lock = threading.RLock()
         self.__rwhandler = rwlock.RWLockFairD()
+        #
+        if not lazy_load:
+            self.payload()
     #
     #
     @property

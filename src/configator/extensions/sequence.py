@@ -50,7 +50,7 @@ class AutoIncrement(object):
     #
     #
     def __open_connection(self):
-        return assure_not_null(self.__connector.connect(pinging=False, retrying=False))
+        return assure_not_null(self.__connector.rewind().connect(pinging=False, retrying=False))
     #
     def __gen_counter_key(self, label):
         if label:

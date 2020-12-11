@@ -119,7 +119,7 @@ class SettingSubscriber(object):
         def wrap_capsule_reset(message, err):
             return capsule.reset(parameters=extract_parameters(message, err))
         if isinstance(capsule, SettingCapsule):
-            self.add_event_handler(match_by_label(capsule.name), wrap_capsule_reset)
+            self.add_event_handler(match_by_label(capsule.label), wrap_capsule_reset)
         return capsule
 
 
