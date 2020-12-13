@@ -31,15 +31,19 @@ class AutoIncrement(object):
     #
     ##
     def init(self, label:Optional[str]=None, value:Optional[int]=0):
-        return self.__open_connection().set(self.__gen_counter_key(label), value, nx=True)
+        return self.__open_connection().set(self.__gen_absolute_key(label), value, nx=True)
     #
     ##
     def incr(self, label:Optional[str]=None, amount:Optional[int]=1):
-        return self.__open_connection().incr(self.__gen_counter_key(label), amount=amount)
+        return self.__open_connection().incr(self.__gen_absolute_key(label), amount=amount)
+    #
+    #
+    def clear(self, label:Optional[str]=None):
+        return self.__open_connection().delete(self.__gen_absolute_key(label))
     #
     #
     def reset(self, label:Optional[str]=None, value:Optional[int]=0):
-        return self.__open_connection().set(self.__gen_counter_key(label), value)
+        return self.__open_connection().set(self.__gen_absolute_key(label), value)
     #
     #
     def close(self):
@@ -52,7 +56,7 @@ class AutoIncrement(object):
     def __open_connection(self):
         return assure_not_null(self.__connector.rewind().connect(pinging=False, retrying=False))
     #
-    def __gen_counter_key(self, label):
+    def __gen_absolute_key(self, label):
         if label:
             return self.__default_key + ':' + str(label)
         return self.__default_key
