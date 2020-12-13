@@ -93,14 +93,19 @@ class SettingSubscriber(object):
         if self.__event_mappings is None:
             self.__event_mappings = dict()
         if not callable(match):
-            raise ValueError('match must be callable')
+            raise ValueError('[match] must be callable')
         if not reset:
-            raise ValueError('reset list must not be empty')
+            raise ValueError('[reset] list must not be empty')
+        for i, func in enumerate(reset):
+            if not callable(func):
+                raise ValueError('function#{0} must be callable'.format(i))
         self.__event_mappings[match] = reset
         return self
     #
     def __process_event(self, message):
         if self.__event_mappings is None:
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.log(logging.DEBUG, "handler_mappings is empty (no service has been registered yet)")
             return
         #
         if self.__transformer is not None:
@@ -110,8 +115,12 @@ class SettingSubscriber(object):
         #
         for match, reaction in self.__event_mappings.items():
             if match(msg, err):
+                if LOG.isEnabledFor(logging.DEBUG):
+                    LOG.log(logging.DEBUG, "the matching function [{0}] is matched".format(match.__name__))
                 for reset in reaction:
                     if callable(reset):
+                        if LOG.isEnabledFor(logging.DEBUG):
+                            LOG.log(logging.DEBUG, "the handler [{0}] is triggered".format(reset.__name__))
                         reset(msg, err)
     #
     #
