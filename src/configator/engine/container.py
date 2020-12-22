@@ -20,17 +20,20 @@ class SettingCapsule():
     __on_refresh = None
     #
     #
-    def __init__(self, label: str, loader: Callable, lazy_load:bool=True,
+    def __init__(self, label: str, loader: Callable, default=None, lazy_load:bool=True,
             on_access:Optional[Callable]=None,
             on_pre_load:Optional[Callable]=None,
             on_post_load:Optional[Callable]=None,
             on_load_error:Optional[Callable]=None,
+            on_use_default:Optional[Callable]=None,
             on_refresh:Optional[Callable]=None):
         assert isinstance(label, str) and label, "[label] must be a string and not empty"
         self.__label = label
         #
         assert callable(loader), "[loader] must be a function"
         self.__loader = loader
+        #
+        self.__default = default
         #
         if callable(on_access):
             self.__on_access = on_access
@@ -49,6 +52,11 @@ class SettingCapsule():
             self.__on_load_error = on_load_error
         else:
             self.__on_load_error = default_on_load_error
+        #
+        if callable(on_use_default):
+            self.__on_use_default = on_use_default
+        else:
+            self.__on_use_default = default_on_use_default
         #
         if callable(on_refresh):
             self.__on_refresh = on_refresh
@@ -82,14 +90,14 @@ class SettingCapsule():
     def content(self):
         return self.payload()
     #
-    def payload(self):
+    def payload(self, *args, **kwargs):
         with self.__rwhandler.gen_rlock():
             if callable(self.__on_access):
                 self.__on_access(self.__label, time.time())
             if self.__payload is None:
                 with self.__load_lock:
                     if self.__payload is None:
-                        self.__payload = self.__reload()
+                        self.__payload = self.__reload(*args, **kwargs)
             return self.__payload
     #
     def refresh(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
@@ -123,7 +131,11 @@ class SettingCapsule():
         except Exception as exception:
             if callable(self.__on_load_error):
                 self.__on_load_error(self.__label, time.time(), exception)
-            raise exception
+            if self.__default is None:
+                raise exception
+            if callable(self.__on_use_default):
+                self.__on_use_default(self.__label, time.time(), exception)
+            return self.__default
 
 
 def default_on_refresh(label, timestamp):
@@ -136,8 +148,12 @@ def default_on_pre_load(label, timestamp):
 
 def default_on_post_load(label, timestamp):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] save the result of loader to the buffer', label)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] cache the result of loader call', label)
 
 def default_on_load_error(label, timestamp, error):
     if LOG.isEnabledFor(logging.ERROR):
         LOG.log(logging.ERROR, 'SettingCapsule[%s] error in loader function call', label)
+
+def default_on_use_default(label, timestamp, error):
+    if LOG.isEnabledFor(logging.ERROR):
+        LOG.log(logging.ERROR, 'SettingCapsule[%s] use the default content when loader call failed', label)

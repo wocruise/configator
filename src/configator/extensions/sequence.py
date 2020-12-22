@@ -11,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 class AutoIncrement(object):
     #
-    def __init__(self, *args, topic='counter', connector=None, **kwargs):
+    def __init__(self, topic='counter', connector=None, **kwargs):
         if isinstance(connector, RedisClient):
             self.__use_shared_connector = True
             self.__connector = connector
