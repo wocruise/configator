@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import logging
-import redis, os
 import threading
 import time
+import redis
 
+from configator.envars import ev
 from configator.utils.datatype import str_to_int
 from configator.utils.function import build_url
 from typing import Any, Callable, List, Tuple, Dict, Optional, Union
@@ -36,16 +37,17 @@ class RedisClient(object):
     #
     def __update_connection_kwargs_from_env(self):
         #
-        env_prefix_lodash = self.ENV_PREFIX + '_'
+        env_prefix_lodash = self.ENV_PREFIX + '__' if self.ENV_PREFIX else ''
+        with_prefix = len(env_prefix_lodash) == 0
         #
-        host = os.getenv(env_prefix_lodash + 'REDIS_HOST')
+        host = ev.getenv(env_prefix_lodash + 'REDIS_HOST', with_prefix=with_prefix)
         if host:
             self.__connection_kwargs['host'] = host
         #
         if not self.__connection_kwargs.get('host'):
             self.__connection_kwargs['host'] = 'localhost'
         #
-        port = os.getenv(env_prefix_lodash + 'REDIS_PORT')
+        port = ev.getenv(env_prefix_lodash + 'REDIS_PORT', with_prefix=with_prefix)
         if port:
             port, err = str_to_int(port)
             if err is None and port > 0:
@@ -53,7 +55,7 @@ class RedisClient(object):
         if not self.__connection_kwargs.get('port'):
             self.__connection_kwargs['port'] = 6379
         #
-        db = os.getenv(env_prefix_lodash + 'REDIS_DB')
+        db = ev.getenv(env_prefix_lodash + 'REDIS_DB', with_prefix=with_prefix)
         if db:
             db, err = str_to_int(db)
             if err is None and type(db) == type(0):
@@ -61,11 +63,11 @@ class RedisClient(object):
         if 'db' not in self.__connection_kwargs:
             self.__connection_kwargs['db'] = 0
         #
-        username = os.getenv(env_prefix_lodash + 'REDIS_USERNAME')
+        username = ev.getenv(env_prefix_lodash + 'REDIS_USERNAME', with_prefix=with_prefix)
         if username:
             self.__connection_kwargs['username'] = username
         #
-        password = os.getenv(env_prefix_lodash + 'REDIS_PASSWORD')
+        password = ev.getenv(env_prefix_lodash + 'REDIS_PASSWORD', with_prefix=with_prefix)
         if password:
             self.__connection_kwargs['password'] = password
         #

@@ -12,7 +12,7 @@ def hook_signal(reaction, signal_code=signal.SIGINT, finished=False):
     current_handler = None
     def signal_handler(signalnum, frame):
         if LOG.isEnabledFor(logging.DEBUG):
-            LOG.log(logging.DEBUG, "SIGNAL[%d] received" % signalnum)
+            LOG.log(logging.DEBUG, "SIGNAL[%d] received", signalnum)
         #
         reaction()
         #

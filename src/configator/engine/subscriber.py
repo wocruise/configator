@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
 import logging
-import redis
-import signal
 import threading
-import traceback, sys, os
+import traceback, sys
+import redis
 
 from configator.engine.connector import RedisClient
 from configator.engine.container import SettingCapsule
