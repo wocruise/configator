@@ -96,3 +96,13 @@ def extract_parameters(message, err):
         if isinstance(params, (dict, list)):
             return params
     return None
+
+
+def dict_update(target, source, condition=True, cloned=False):
+    if cloned:
+        result = dict(target)
+    else:
+        result = target
+    if condition:
+        result.update(source)
+    return result

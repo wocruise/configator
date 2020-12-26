@@ -4,8 +4,11 @@ import os
 import time
 
 from inspect import currentframe, getframeinfo
+from configator.utils.function import dict_update
 from configator.utils.string_util import remove_prefix
 from configator.utils.system_util import get_app_root
+
+EMPTY_DICT = dict()
 
 class EnvHelper():
     #
@@ -21,7 +24,7 @@ class EnvHelper():
         self.__prefix = None
         self.__strict = True
         self.__tracking_enabled = True
-        self.__footprint = None
+        self.__footprint = dict()
     #
     def _track_env(self, key, value, info=None):
         if not self.__tracking_enabled:
@@ -45,28 +48,37 @@ class EnvHelper():
     #
     @property
     def active_env_vars(self):
-        return self.get_stats(includes=[])
+        return self.get_stats()
     #
-    def get_stats(self, includes=None):
-        if self.__footprint is None:
-            return dict()
-        if includes is None:
-            fields = None
-        else:
-            fields = ['value']
-            if isinstance(includes, list) and includes and 'value' not in includes:
-                fields = fields + includes
-        def transform_env_var(item):
-            if fields is None:
-                return item
-            if len(fields) == 1 and 'value' in fields:
-                return item.get('current').get('value')
-            return { k: v for k, v in item.get('current').items() if k in fields }
-        return dict(
-            prefix=self.prefix,
-            strict=self.strict,
-            values={ k: transform_env_var(v) for k, v in self.__footprint.items() }
-        )
+    def get_stats(self, level=None):
+        trails = None
+        if level == 'current':
+            trails = self.__extract_current_states()
+        elif level == 'full':
+            trails = self.__extract_full_footprint()
+        #
+        return dict_update(
+            dict(
+                prefix=self.prefix,
+                strict=self.strict,
+                values=self.__extract_values()
+            ),
+            dict(trails=trails), trails is not None)
+    #
+    def __extract_values(self):
+        def extract(trail):
+            return trail.get('current', EMPTY_DICT).get('value')
+        return { k: extract(v) for k, v in self.__footprint.items() }
+    #
+    def __extract_current_states(self):
+        def extract(trail):
+            return trail.get('current')
+        return { k: extract(v) for k, v in self.__footprint.items() }
+    #
+    def __extract_full_footprint(self):
+        def extract(trail):
+            return dict(trail)
+        return { k: extract(v) for k, v in self.__footprint.items() }
     #
     @property
     def prefix(self):
@@ -116,17 +128,35 @@ class EnvHelper():
         val = os.getenv(used_key, default)
         #
         if self.__tracking_enabled:
-            cf_back = currentframe().f_back
+            filename, lineno = self.__get_filename_and_lineno(currentframe())
             self._track_env(label, val, info=dict(
                 with_prefix=with_prefix,
                 prefixed_key=prefixed_key,
                 used_key=used_key,
                 is_default=is_default,
-                module= self.__remove_app_root_dir(getframeinfo(cf_back).filename),
-                lineno=cf_back.f_lineno
+                module= self.__remove_app_root_dir(filename),
+                lineno=lineno
             ))
         #
         return val
+    #
+    #
+    def __get_filename_and_lineno(self, cf):
+        filename = None
+        lineno = None
+        #
+        if cf is None:
+            return (filename, lineno)
+        cf = cf.f_back
+        #
+        if cf is None:
+            return (filename, lineno)
+        #
+        info = getframeinfo(cf)
+        filename = info.filename
+        lineno = info.lineno
+        #
+        return (filename, lineno)
     #
     #
     def __remove_app_root_dir(self, module_file):
