@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from configator.extensions.sequence import AutoIncrement
-from configator.utils.function import json_dumps
+from configator.utils.function_util import json_dumps
 
 
 class AutoIncrement__test(unittest.TestCase):

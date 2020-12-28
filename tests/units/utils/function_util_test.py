@@ -2,7 +2,7 @@
 
 import unittest
 
-from configator.utils.function import build_url
+from configator.utils.function_util import build_url
 
 
 class build_url__test(unittest.TestCase):

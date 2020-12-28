@@ -6,8 +6,8 @@ import logging
 import time, threading
 from configator.engine import SettingSubscriber
 from configator.extensions.logging import LoggingConfigUpdater
-from configator.utils.function import transform_json_data
-from configator.utils.signfunc import hook_signal
+from configator.utils.function_util import transform_json_data
+from configator.utils.signal_util import hook_signal
 
 logger = logging.getLogger(__name__)
 

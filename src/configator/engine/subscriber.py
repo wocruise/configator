@@ -7,7 +7,7 @@ import redis
 
 from configator.engine.connector import RedisClient
 from configator.engine.container import SettingCapsule
-from configator.utils.function import assure_not_null, match_by_label, extract_parameters, transform_json_data
+from configator.utils.function_util import assure_not_null, match_by_label, extract_parameters, transform_json_data
 from typing import Any, Callable, List, Tuple, Dict, Optional
 
 LOG = logging.getLogger(__name__)

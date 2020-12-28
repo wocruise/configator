@@ -3,8 +3,8 @@
 import __init__
 
 from configator.engine import SettingSubscriber
-from configator.utils.function import match_by_label, transform_json_data
-from configator.utils.signfunc import hook_signal
+from configator.utils.function_util import match_by_label, transform_json_data
+from configator.utils.signal_util import hook_signal
 
 s = SettingSubscriber()
 

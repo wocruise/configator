@@ -4,7 +4,7 @@ import os
 import time
 
 from inspect import currentframe, getframeinfo
-from configator.utils.function import dict_update
+from configator.utils.function_util import dict_update
 from configator.utils.string_util import remove_prefix
 from configator.utils.system_util import get_app_root
 

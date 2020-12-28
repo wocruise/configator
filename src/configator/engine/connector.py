@@ -6,8 +6,8 @@ import time
 import redis
 
 from configator.envars import ev
-from configator.utils.datatype import str_to_int
-from configator.utils.function import build_url
+from configator.utils.datatype_util import str_to_int
+from configator.utils.function_util import build_url
 from typing import Any, Callable, List, Tuple, Dict, Optional, Union
 
 DEFAULT_CHANNEL_GROUP = 'configator'

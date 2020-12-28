@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from configator.extensions.storage import SettingStorage
-from configator.utils.function import json_dumps
+from configator.utils.function_util import json_dumps
 
 
 class SettingStorage__test(unittest.TestCase):

@@ -4,7 +4,7 @@
 import logging
 
 from configator.engine.connector import RedisClient
-from configator.utils.function import assure_not_null, json_dumps, json_loads
+from configator.utils.function_util import assure_not_null, json_dumps, json_loads
 from typing import List, Tuple, Dict, Optional, Union, Any
 
 LOG = logging.getLogger(__name__)
