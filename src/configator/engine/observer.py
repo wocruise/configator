@@ -2,8 +2,9 @@
 
 import time
 
-from abc import abstractproperty, abstractmethod
+from abc import abstractmethod
 from inspect import currentframe
+from configator.utils.datetime_util import fromtimestamp, strftime
 from configator.utils.trackback_util import CodeLocation
 
 class CapsuleObserver():
@@ -22,20 +23,25 @@ class CapsuleObserver():
         key = capsule.label
         #
         if key not in self.__capsule_store:
-            store = self.__capsule_store[key] = dict(
-                timestamp=time.time(),
+            self.__capsule_store[key] = dict(
                 count=1,
                 capsule=capsule,
+                timestamp=time.time(),
                 history=[]
             )
         else:
             store = self.__capsule_store[key]
-            store['count'] = store['count'] + 1
-            store['history'].append(store['capsule'])
-            store['capsule'] = capsule
+            self.__capsule_store[key] = dict(
+                count=store['count'] + 1,
+                capsule=capsule,
+                timestamp=time.time(),
+                history=store['history']
+            )
+            del store['history']
+            self.__capsule_store[key]['history'].append(store)
         #
         if isinstance(location, dict):
-            store['location'] = location
+            self.__capsule_store[key]['location'] = location
         #
         return capsule
     #
@@ -53,8 +59,13 @@ class CapsuleObserver():
             for name, obj in trail.items():
                 if name == 'capsule':
                     info[name] = obj.summarize(**kwargs)
-                else:
-                    info[name] = obj
+                    continue
+                if name == 'timestamp':
+                    info[name] = strftime(fromtimestamp(obj))
+                    continue
+                if name == 'history':
+                    continue
+                info[name] = obj
             return info
         return { k: extract(v) for k, v in self.__capsule_store.items() }
 

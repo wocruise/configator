@@ -9,6 +9,7 @@ from readerwriterlock import rwlock
 from typing import Callable, Dict, List, Optional, Union
 
 from configator.engine.observer import CapsuleObservable
+from configator.utils.datatype_util import get_type_fullname
 from configator.utils.function_util import json_loads
 
 LOG = logging.getLogger(__name__)
@@ -84,22 +85,27 @@ class SettingCapsule(CapsuleObservable):
         self._observe()
     #
     #
-    def summarize(self, *args, **kwargs):
+    def summarize(self, *args, deepdiff=True, show_default=False, show_setting=False, **kwargs):
         info = dict(
             context=dict(
-                type=str(type(self.context)),
+                type=get_type_fullname(self.context),
                 state=self.__context_state
             ),
             setting=dict(
-                type=str(type(self.setting)),
+                type=get_type_fullname(self.setting),
                 state=self.__setting_state
-            ),
-            default=dict(
-                value=self.__default
             )
         )
         #
-        if isinstance(self.__default, dict) and isinstance(self.setting, dict):
+        if show_setting:
+            info['setting']['value'] = self.setting
+        #
+        if show_default:
+            info['default'] = dict(
+                value=self.__default
+            )
+        #
+        if deepdiff and isinstance(self.__default, dict) and isinstance(self.setting, dict):
             try:
                 obj, err = json_loads(DeepDiff(dict(self.__default), dict(self.setting), ignore_order=True).to_json())
                 if err:
