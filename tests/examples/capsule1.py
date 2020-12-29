@@ -78,4 +78,8 @@ if __name__ == "__main__":
     if hasattr(controller.capsule, 'summary'):
         print(controller.capsule.summary)
     if hasattr(SettingCapsule, 'stats'):
-        print(SettingCapsule.stats())
+        out, err = json_dumps(SettingCapsule.stats(), indent=4)
+        if err:
+            print('Error: {}'.format(err))
+        else:
+            print(out)

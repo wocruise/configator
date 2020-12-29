@@ -9,6 +9,7 @@ from readerwriterlock import rwlock
 from typing import Callable, Dict, List, Optional, Union
 
 from configator.engine.observer import CapsuleObservable
+from configator.utils.function_util import json_loads
 
 LOG = logging.getLogger(__name__)
 
@@ -100,10 +101,14 @@ class SettingCapsule(CapsuleObservable):
         #
         if isinstance(self.__default, dict) and isinstance(self.setting, dict):
             try:
-                info['setting']['diff'] = DeepDiff(dict(self.__default), dict(self.setting), ignore_order=True)
+                obj, err = json_loads(DeepDiff(dict(self.__default), dict(self.setting), ignore_order=True).to_json())
+                if err:
+                    info['setting']['diff'] = dict(error=str(err))
+                else:
+                    info['setting']['diff'] = obj
             except Exception as err:
                 if LOG.isEnabledFor(logging.ERROR):
-                    LOG.log(logging.ERROR, 'SettingCapsule[%s] is error on comparing the setting value with the default', self.label)
+                    LOG.log(logging.ERROR, 'SettingCapsule[%s] is error on comparing the setting value and the default', self.label)
         #
         return info
     #

@@ -3,6 +3,8 @@
 import time
 
 from abc import abstractproperty, abstractmethod
+from inspect import currentframe
+from configator.mixins import CodeLocation
 
 class CapsuleObserver():
     #
@@ -15,12 +17,12 @@ class CapsuleObserver():
         self.__capsule_store = dict()
     #
     #
-    def track(self, capsule):
+    def track(self, capsule, location=None):
         #
         key = capsule.label
         #
         if key not in self.__capsule_store:
-            self.__capsule_store[key] = dict(
+            store = self.__capsule_store[key] = dict(
                 timestamp=time.time(),
                 count=1,
                 capsule=capsule,
@@ -31,6 +33,9 @@ class CapsuleObserver():
             store['count'] = store['count'] + 1
             store['history'].append(store['capsule'])
             store['capsule'] = capsule
+        #
+        if isinstance(location, dict):
+            store['location'] = location
         #
         return capsule
     #
@@ -49,17 +54,18 @@ class CapsuleObserver():
                 if name == 'capsule':
                     info[name] = obj.summarize(**kwargs)
                 else:
-                    info[name] = str(obj)
+                    info[name] = obj
             return info
         return { k: extract(v) for k, v in self.__capsule_store.items() }
 
 
-class CapsuleObservable():
+class CapsuleObservable(CodeLocation):
     __observer = CapsuleObserver()
     #
     #
     def _observe(self):
-        self.__observer.track(self)
+        filename, lineno = self._get_filename_and_lineno(currentframe(), depth=2)
+        self.__observer.track(self, location=dict(filename=filename, lineno=lineno))
     #
     #
     @property
