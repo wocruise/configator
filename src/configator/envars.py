@@ -107,6 +107,16 @@ class EnvHelper():
             self.__strict = val
         return val
     #
+    @property
+    def tracking_enabled(self):
+        return self.__tracking_enabled
+    #
+    @tracking_enabled.setter
+    def tracking_enabled(self, val):
+        if isinstance(val, bool):
+            self.__tracking_enabled = val
+        return val
+    #
     #
     def getenv(self, label, default=None, with_prefix=True):
         used_key = label

@@ -2,17 +2,22 @@
 
 import __init__
 import logging
+import uuid
 
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from configator.engine import SettingCapsule
+from configator.engine.container import SettingCapsule
+# from configator.legacy.container import SettingCapsule
 from configator.utils.function_util import json_dumps
 
 logger = logging.getLogger(__name__)
 
 class Controller():
     def __init__(self, *args, **kwargs):
-        self.__capsule = SettingCapsule(label='CAPSULE_EXAMPLE', loader=self.load, on_refresh=self.on_refresh)
+        self.__capsule = SettingCapsule(label='CAPSULE_EXAMPLE',
+                loader=self.load,
+                default=dict(uuid='553dd766-9176-4970-9a1c-aacada948b28'),
+                on_refresh=self.on_refresh)
     #
     @property
     def capsule(self):
@@ -31,10 +36,10 @@ class Controller():
         }
     #
     def use_data(self):
-        return self.capsule.content
+        return self.capsule.payload(uuid=str(uuid.uuid4()))
     #
     def refresh(self):
-        self.capsule.refresh()
+        self.capsule.refresh(parameters=dict(uuid=str(uuid.uuid4())))
         return None
     #
     @staticmethod
@@ -67,4 +72,10 @@ if __name__ == "__main__":
             cat[timestamp].append(result)
 
     out, err = json_dumps(cat, indent=4)
+    print(err)
     print(out)
+
+    if hasattr(controller.capsule, 'summary'):
+        print(controller.capsule.summary)
+    if hasattr(SettingCapsule, 'stats'):
+        print(SettingCapsule.stats())

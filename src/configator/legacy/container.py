@@ -4,23 +4,15 @@ import logging
 import threading
 import time
 
-from deepdiff import DeepDiff
 from readerwriterlock import rwlock
 from typing import Callable, Dict, List, Optional, Union
 
-from configator.engine.observer import CapsuleObservable
-
 LOG = logging.getLogger(__name__)
 
-class SettingCapsule(CapsuleObservable):
+class SettingCapsule():
     __label = None
-    __default = None
-    __setting = None
-    __setting_state = None
-    __context = None
-    __context_state = None
+    __payload = None
     __loader = None
-    __transformer = None
     __on_access = None
     __on_pre_load = None
     __on_post_load = None
@@ -28,7 +20,7 @@ class SettingCapsule(CapsuleObservable):
     __on_refresh = None
     #
     #
-    def __init__(self, label: str, loader: Callable, transformer:Callable=None, default=None, lazy_load:bool=True,
+    def __init__(self, label: str, loader: Callable, default=None, lazy_load:bool=True,
             on_access:Optional[Callable]=None,
             on_pre_load:Optional[Callable]=None,
             on_post_load:Optional[Callable]=None,
@@ -40,9 +32,6 @@ class SettingCapsule(CapsuleObservable):
         #
         assert callable(loader), "[loader] must be a function"
         self.__loader = loader
-        #
-        assert transformer is None or callable(transformer), "[transformer] must be a function"
-        self.__transformer = transformer
         #
         self.__default = default
         #
@@ -79,33 +68,18 @@ class SettingCapsule(CapsuleObservable):
         #
         if not lazy_load:
             self.payload()
-        #
-        self._observe()
     #
     #
-    def summarize(self, *args, **kwargs):
-        info = dict(
-            context=dict(
-                type=str(type(self.context)),
-                state=self.__context_state
-            ),
-            setting=dict(
-                type=str(type(self.setting)),
-                state=self.__setting_state
-            ),
-            default=dict(
-                value=self.__default
-            )
-        )
-        #
-        if isinstance(self.__default, dict) and isinstance(self.setting, dict):
-            try:
-                info['setting']['diff'] = DeepDiff(dict(self.__default), dict(self.setting), ignore_order=True)
-            except Exception as err:
-                if LOG.isEnabledFor(logging.ERROR):
-                    LOG.log(logging.ERROR, 'SettingCapsule[%s] is error on comparing the setting value with the default', self.label)
-        #
-        return info
+    @property
+    def name(self):
+        return self.label
+    #
+    @property
+    def data(self):
+        return self.content
+    #
+    def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
+        return self.refresh(parameters, lazy_load=lazy_load, **kwargs)
     #
     #
     @property
@@ -114,67 +88,33 @@ class SettingCapsule(CapsuleObservable):
     #
     @property
     def content(self):
-        return self.get_setting()
+        return self.payload()
     #
     def payload(self, *args, **kwargs):
-        return self.get_setting(*args, **kwargs)
-    #
-    @property
-    def setting(self):
-        return self.get_setting()
-    #
-    def get_setting(self, *args, **kwargs):
-        setting, _ = self.__read(*args, **kwargs)
-        return setting
-    #
-    @property
-    def context(self):
-        return self.get_context()
-    #
-    def get_context(self, *args, **kwargs):
-        _, context = self.__read(*args, **kwargs)
-        return context
-    #
-    #
-    def __read(self, *args, **kwargs):
         with self.__rwhandler.gen_rlock():
             if callable(self.__on_access):
                 self.__on_access(self.__label, time.time())
-            if self.__setting is None:
+            if self.__payload is None:
                 with self.__load_lock:
-                    if self.__setting is None:
-                        self.__setting_state = 0
-                        self.__setting, self.__setting_state = self.__reload(*args, **kwargs)
-                        self.__context = None
-                    if self.__context is None:
-                        self.__context_state = 0
-                        self.__context, self.__context_state = self.__retransform(self.__setting)
-            return self.__setting, self.__context
+                    if self.__payload is None:
+                        self.__payload = self.__reload(*args, **kwargs)
+            return self.__payload
     #
     def refresh(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         with self.__rwhandler.gen_wlock():
             if callable(self.__on_refresh):
                 self.__on_refresh(self.__label, time.time())
-            #
-            self.__context = None
-            self.__context_state = 0
-            self.__setting = None
-            self.__setting_state = 0
-            #
-            if not lazy_load:
+            if lazy_load:
+                self.__payload = None
+            else:
                 args = []
                 kwargs = {}
                 if isinstance(parameters, dict):
                     kwargs = parameters
                 elif isinstance(parameters, list):
                     args = parameters
-                self.__setting, self.__setting_state = self.__reload(*args, **kwargs)
-                self.__context, self.__context_state = self.__retransform(self.__setting)
+                self.__payload = self.__reload(*args, **kwargs)
         return self
-    #
-    #
-    def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
-        return self.refresh(parameters, lazy_load=lazy_load, **kwargs)
     #
     #
     def __reload(self, *args, **kwargs):
@@ -182,12 +122,12 @@ class SettingCapsule(CapsuleObservable):
             if callable(self.__on_pre_load):
                 self.__on_pre_load(self.__label, time.time())
             #
-            result = self.__loader(*args, **kwargs, __content__=self.__setting)
+            result = self.__loader(*args, **kwargs, __content__=self.__payload)
             #
             if callable(self.__on_post_load):
                 self.__on_post_load(self.__label, time.time())
             #
-            return result, 2
+            return result
         except Exception as exception:
             if callable(self.__on_load_error):
                 self.__on_load_error(self.__label, time.time(), exception)
@@ -195,18 +135,7 @@ class SettingCapsule(CapsuleObservable):
                 raise exception
             if callable(self.__on_use_default):
                 self.__on_use_default(self.__label, time.time(), exception)
-            return self.__default, 1
-    #
-    #
-    def __retransform(self, setting):
-        if self.__transformer is None:
-            return setting, 1
-        #
-        try:
-            context = self.__transformer(setting, __context__=self.__context)
-            return context, 2
-        except Exception as exception:
-            raise exception
+            return self.__default
 
 
 def default_on_refresh(label, timestamp):
