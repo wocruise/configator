@@ -3,14 +3,13 @@
 import os
 import time
 
-from inspect import currentframe, getframeinfo
+from inspect import currentframe
+from configator.mixins import CodeLocation
 from configator.utils.function_util import dict_update
-from configator.utils.string_util import remove_prefix
-from configator.utils.system_util import get_app_root
 
 EMPTY_DICT = dict()
 
-class EnvHelper():
+class EnvHelper(CodeLocation):
     #
     __freeze = False
     __uppercase = True
@@ -18,7 +17,6 @@ class EnvHelper():
     __strict = None
     __tracking_enabled = None
     __footprint = None
-    __app_root_dir = get_app_root()
     #
     def __init__(self, *args, **kwargs):
         self.__prefix = None
@@ -138,38 +136,16 @@ class EnvHelper():
         val = os.getenv(used_key, default)
         #
         if self.__tracking_enabled:
-            filename, lineno = self.__get_filename_and_lineno(currentframe())
+            filename, lineno = self._get_filename_and_lineno(currentframe())
             self._track_env(label, val, info=dict(
                 with_prefix=with_prefix,
                 prefixed_key=prefixed_key,
                 used_key=used_key,
                 is_default=is_default,
-                module= self.__remove_app_root_dir(filename),
+                module= filename,
                 lineno=lineno
             ))
         #
         return val
-    #
-    #
-    def __get_filename_and_lineno(self, cf):
-        filename = None
-        lineno = None
-        #
-        if cf is None:
-            return (filename, lineno)
-        cf = cf.f_back
-        #
-        if cf is None:
-            return (filename, lineno)
-        #
-        info = getframeinfo(cf)
-        filename = info.filename
-        lineno = info.lineno
-        #
-        return (filename, lineno)
-    #
-    #
-    def __remove_app_root_dir(self, module_file):
-        return remove_prefix(module_file, self.__app_root_dir)
 
 ev = EnvHelper()
