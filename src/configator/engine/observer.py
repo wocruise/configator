@@ -4,7 +4,7 @@ import time
 
 from abc import abstractproperty, abstractmethod
 from inspect import currentframe
-from configator.mixins import CodeLocation
+from configator.utils.trackback_util import CodeLocation
 
 class CapsuleObserver():
     #

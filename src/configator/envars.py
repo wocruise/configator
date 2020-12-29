@@ -4,7 +4,7 @@ import os
 import time
 
 from inspect import currentframe
-from configator.mixins import CodeLocation
+from configator.utils.trackback_util import CodeLocation
 from configator.utils.function_util import dict_update
 
 EMPTY_DICT = dict()
