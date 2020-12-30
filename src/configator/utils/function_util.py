@@ -109,15 +109,15 @@ def dict_update(target, source, condition=True, cloned=False):
     return result
 
 
-def apply_sequence_decorators(*decorators):
-    def sequence_decorators(func):
+def apply_sequence_decorators(*outer_decorators):
+    def decorator(func):
         @wraps(func)
-        def apply(*args, **kwargs):
-            result = func(*args, **kwargs)
-            if decorators:
-                for f in reversed(decorators):
-                    if callable(f):
-                        result = f(result)
-            return result
-        return apply
-    return sequence_decorators
+        def wrapper(*args, **kwargs):
+            f = func
+            if outer_decorators:
+                for outer_decorator in reversed(outer_decorators):
+                    if callable(outer_decorator):
+                        f = outer_decorator(f)
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
