@@ -51,6 +51,11 @@ class SettingCapsule(CapsuleObservable):
             self.__default = default
             self.__default_initial = True
         #
+        self.__setting = None
+        self.__setting_state = 0
+        self.__context = None
+        self.__context_state = 0
+        #
         if callable(on_access):
             self.__on_access = on_access
         #
@@ -143,6 +148,11 @@ class SettingCapsule(CapsuleObservable):
         return setting
     #
     @property
+    def setting_state(self):
+        return self.__setting_state
+    #
+    #
+    @property
     def context(self):
         return self.get_context()
     #
@@ -150,11 +160,15 @@ class SettingCapsule(CapsuleObservable):
         _, context = self.__read(*args, **kwargs)
         return context
     #
+    @property
+    def context_state(self):
+        return self.__context_state
+    #
     #
     def __read(self, *args, **kwargs):
         with self.__rwhandler.gen_rlock():
             if callable(self.__on_access):
-                self.__on_access(self.__label, time.time())
+                self.__on_access(self.__label)
             if self.__setting is None:
                 with self.__load_lock:
                     if self.__setting is None:
@@ -169,7 +183,7 @@ class SettingCapsule(CapsuleObservable):
     def refresh(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
         with self.__rwhandler.gen_wlock():
             if callable(self.__on_refresh):
-                self.__on_refresh(self.__label, time.time())
+                self.__on_refresh(self.__label)
             #
             self.__context = None
             self.__context_state = 0
@@ -195,23 +209,23 @@ class SettingCapsule(CapsuleObservable):
     def __reload(self, *args, **kwargs):
         try:
             if callable(self.__on_pre_load):
-                self.__on_pre_load(self.__label, time.time())
+                self.__on_pre_load(self.__label)
             #
             result = self.__loader(*args, **kwargs, __content__=self.__setting)
             #
             if callable(self.__on_post_load):
-                self.__on_post_load(self.__label, time.time())
+                self.__on_post_load(self.__label)
             #
             if result is not None:
                 return result, 2
         except Exception as exception:
             if callable(self.__on_load_error):
-                self.__on_load_error(self.__label, time.time(), exception)
+                self.__on_load_error(self.__label, error=exception)
             if self.__default is None:
                 raise exception
         #
         if callable(self.__on_use_default):
-            self.__on_use_default(self.__label, time.time())
+            self.__on_use_default(self.__label, default=self.__default)
         return self.__default, 1
     #
     #
@@ -226,22 +240,22 @@ class SettingCapsule(CapsuleObservable):
             raise exception
 
 
-def default_on_refresh(label, timestamp):
+def default_on_refresh(label, *args, **kwargs):
     if LOG.isEnabledFor(logging.DEBUG):
         LOG.log(logging.DEBUG, 'SettingCapsule[%s] refresh the content', label)
 
-def default_on_pre_load(label, timestamp):
+def default_on_pre_load(label, *args, **kwargs):
     if LOG.isEnabledFor(logging.DEBUG):
         LOG.log(logging.DEBUG, 'SettingCapsule[%s] invoke the loader to load the content', label)
 
-def default_on_post_load(label, timestamp):
+def default_on_post_load(label, *args, **kwargs):
     if LOG.isEnabledFor(logging.DEBUG):
-        LOG.log(logging.DEBUG, 'SettingCapsule[%s] cache the result of loader call', label)
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] loading has finished', label)
 
-def default_on_load_error(label, timestamp, error):
+def default_on_load_error(label, error, *args, **kwargs):
     if LOG.isEnabledFor(logging.ERROR):
-        LOG.log(logging.ERROR, 'SettingCapsule[%s] error in loader function call', label)
+        LOG.log(logging.ERROR, 'SettingCapsule[%s] error in loader function call: %s', label, error)
 
-def default_on_use_default(label, timestamp):
+def default_on_use_default(label, *args, **kwargs):
     if LOG.isEnabledFor(logging.DEBUG):
         LOG.log(logging.DEBUG, 'SettingCapsule[%s] use the default setting', label)
