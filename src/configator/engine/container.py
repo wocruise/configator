@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 class SettingCapsule(CapsuleObservable):
     __label = None
     __default = None
+    __default_initial = False
     __setting = None
     __setting_state = None
     __context = None
@@ -46,7 +47,9 @@ class SettingCapsule(CapsuleObservable):
         assert transformer is None or callable(transformer), "[transformer] must be a function"
         self.__transformer = transformer
         #
-        self.__default = default
+        if default is not None:
+            self.__default = default
+            self.__default_initial = True
         #
         if callable(on_access):
             self.__on_access = on_access
@@ -94,6 +97,9 @@ class SettingCapsule(CapsuleObservable):
             setting=dict(
                 type=get_type_fullname(self.setting),
                 state=self.__setting_state
+            ),
+            default=dict(
+                initial=self.__default_initial
             )
         )
         #
@@ -101,9 +107,7 @@ class SettingCapsule(CapsuleObservable):
             info['setting']['value'] = self.setting
         #
         if show_default:
-            info['default'] = dict(
-                value=self.__default
-            )
+            info['default']['value'] = self.__default
         #
         if deepdiff and isinstance(self.__default, dict) and isinstance(self.setting, dict):
             try:
@@ -198,15 +202,17 @@ class SettingCapsule(CapsuleObservable):
             if callable(self.__on_post_load):
                 self.__on_post_load(self.__label, time.time())
             #
-            return result, 2
+            if result is not None:
+                return result, 2
         except Exception as exception:
             if callable(self.__on_load_error):
                 self.__on_load_error(self.__label, time.time(), exception)
             if self.__default is None:
                 raise exception
-            if callable(self.__on_use_default):
-                self.__on_use_default(self.__label, time.time(), exception)
-            return self.__default, 1
+        #
+        if callable(self.__on_use_default):
+            self.__on_use_default(self.__label, time.time())
+        return self.__default, 1
     #
     #
     def __retransform(self, setting):
@@ -236,6 +242,6 @@ def default_on_load_error(label, timestamp, error):
     if LOG.isEnabledFor(logging.ERROR):
         LOG.log(logging.ERROR, 'SettingCapsule[%s] error in loader function call', label)
 
-def default_on_use_default(label, timestamp, error):
-    if LOG.isEnabledFor(logging.ERROR):
-        LOG.log(logging.ERROR, 'SettingCapsule[%s] use the default content when loader call failed', label)
+def default_on_use_default(label, timestamp):
+    if LOG.isEnabledFor(logging.DEBUG):
+        LOG.log(logging.DEBUG, 'SettingCapsule[%s] use the default setting', label)
