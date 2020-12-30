@@ -2,6 +2,7 @@
 
 import datetime
 import json
+from functools import wraps
 from typing import Any, Callable, List, Tuple, Dict, Optional, Union
 
 
@@ -106,3 +107,17 @@ def dict_update(target, source, condition=True, cloned=False):
     if condition:
         result.update(source)
     return result
+
+
+def apply_sequence_decorators(*decorators):
+    def sequence_decorators(func):
+        @wraps(func)
+        def apply(*args, **kwargs):
+            result = func(*args, **kwargs)
+            if decorators:
+                for f in reversed(decorators):
+                    if callable(f):
+                        result = f(result)
+            return result
+        return apply
+    return sequence_decorators

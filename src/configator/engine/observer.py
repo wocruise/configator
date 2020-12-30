@@ -4,6 +4,7 @@ import time
 
 from abc import abstractmethod
 from inspect import currentframe
+from typing import Dict, List, Optional, Union
 from configator.utils.datetime_util import fromtimestamp, strftime
 from configator.utils.trackback_util import CodeLocation
 
@@ -44,6 +45,19 @@ class CapsuleObserver():
             self.__capsule_store[key]['location'] = location
         #
         return capsule
+    #
+    #
+    def reset(self):
+        info = dict()
+        for k, v in self.__capsule_store.items():
+            capsule = v.get('capsule')
+            if capsule:
+                capsule.reset()
+                result = dict(ok=True)
+            else:
+                result = dict(ok=False)
+            info[k] = result
+        return info
     #
     #
     def stats(self, **kwargs):
@@ -88,6 +102,16 @@ class CapsuleObservable(CodeLocation):
         pass
     #
     #
+    @abstractmethod
+    def reset(self, parameters: Optional[Union[Dict,List]] = None, lazy_load:bool=False, **kwargs):
+        pass
+    #
+    #
     @classmethod
     def stats(cls, **kwargs):
         return cls.__observer.stats(**kwargs)
+    #
+    #
+    @classmethod
+    def observer(cls):
+        return cls.__observer
