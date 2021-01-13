@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import threading
 import time
 
 from inspect import currentframe
@@ -8,6 +9,7 @@ from configator.utils.trackback_util import CodeLocation
 from configator.utils.function_util import dict_update
 
 EMPTY_DICT = dict()
+HISTORY_LENGTH = 10
 
 class EnvHelper(CodeLocation):
     #
@@ -16,21 +18,33 @@ class EnvHelper(CodeLocation):
     __prefix = None
     __strict = None
     __tracking_enabled = None
+    __thread_safe = None
+    __lock = None
     __footprint = None
     #
     def __init__(self, *args, **kwargs):
         self.__prefix = None
         self.__strict = True
         self.__tracking_enabled = True
+        self.__thread_safe = False
+        self.__lock = threading.Lock()
         self.__footprint = dict()
     #
     def _track_env(self, key, value, info=None):
         if not self.__tracking_enabled:
             return self
         #
+        if not self.__thread_safe:
+            return self.__track_env_unsafe_threading(key=key, value=value, info=info)
+        #
+        with self.__lock:
+            return self.__track_env_unsafe_threading(key=key, value=value, info=info)
+    #
+    def __track_env_unsafe_threading(self, key, value, info=None):
         record = dict(value=value, time=time.time(), info=info)
         if self.__footprint is None:
             self.__footprint = dict()
+        #
         if key not in self.__footprint:
             self.__footprint[key] = dict(
                 count=1,
@@ -42,6 +56,10 @@ class EnvHelper(CodeLocation):
             store['count'] = store['count'] + 1
             store['history'].append(store['current'])
             store['current'] = record
+            history = store['history']
+            while len(history) > HISTORY_LENGTH:
+                history.pop(0)
+        #
         return self
     #
     @property
