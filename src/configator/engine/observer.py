@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Union
 from configator.utils.datetime_util import fromtimestamp, strftime
 from configator.utils.trackback_util import CodeLocation
 
+HISTORY_LENGTH = 10
+
 class CapsuleObserver():
     #
     __tracking_enabled = None
@@ -40,6 +42,9 @@ class CapsuleObserver():
             )
             del store['history']
             self.__capsule_store[key]['history'].append(store)
+            history = self.__capsule_store[key]['history']
+            while len(history) > HISTORY_LENGTH:
+                history.pop(0)
         #
         if isinstance(location, dict):
             self.__capsule_store[key]['location'] = location
