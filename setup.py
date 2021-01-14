@@ -4,7 +4,7 @@ import setuptools
 
 setuptools.setup(
   name = 'configator',
-  version = '0.1.9',
+  version = '0.1.10',
   description = 'A simple CONFIGuration propagATOR',
   author = 'skelethon',
   license = 'GPL-3.0',
