@@ -2,8 +2,8 @@
 
 import os
 import threading
-import time
 
+from datetime import datetime
 from inspect import currentframe
 from configator.utils.trackback_util import CodeLocation
 from configator.utils.function_util import dict_update
@@ -41,7 +41,7 @@ class EnvHelper(CodeLocation):
             return self.__track_env_unsafe_threading(key=key, value=value, info=info)
     #
     def __track_env_unsafe_threading(self, key, value, info=None):
-        record = dict(value=value, time=time.time(), info=info)
+        record = dict(value=value, time=datetime.utcnow(), info=info)
         if self.__footprint is None:
             self.__footprint = dict()
         #
@@ -77,6 +77,7 @@ class EnvHelper(CodeLocation):
             dict(
                 prefix=self.prefix,
                 strict=self.strict,
+                thread_safe=self.thread_safe,
                 values=self.__extract_values()
             ),
             dict(trails=trails), trails is not None)
@@ -96,6 +97,7 @@ class EnvHelper(CodeLocation):
             return dict(trail)
         return { k: extract(v) for k, v in self.__footprint.items() }
     #
+    #
     @property
     def prefix(self):
         self.__freeze = True
@@ -112,6 +114,7 @@ class EnvHelper(CodeLocation):
             if self.__uppercase:
                 self.__prefix = self.__prefix.upper()
         return val
+    #
     #
     @property
     def strict(self):
