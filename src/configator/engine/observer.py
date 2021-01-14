@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import threading
 import time
 
 from abc import abstractmethod
@@ -12,16 +13,36 @@ HISTORY_LENGTH = 10
 
 class CapsuleObserver():
     #
-    __tracking_enabled = None
+    __thread_safe = None
+    __lock = None
     __skip_duplication = None
     __capsule_store = None
     #
     #
     def __init__(self, *args, **kwargs):
+        self.__thread_safe = True
+        self.__lock = threading.Lock()
         self.__capsule_store = dict()
     #
     #
+    @property
+    def thread_safe(self):
+        return self.__thread_safe
+    #
+    @thread_safe.setter
+    def thread_safe(self, val):
+        if isinstance(val, bool):
+            self.__thread_safe = val
+        return val
+    #
+    #
     def track(self, capsule, location=None):
+        if not self.__thread_safe:
+            return self.track_unsafe_threading(capsule=capsule, location=location)
+        with self.__lock:
+            return self.track_unsafe_threading(capsule=capsule, location=location)
+    #
+    def track_unsafe_threading(self, capsule, location=None):
         #
         key = capsule.label
         #

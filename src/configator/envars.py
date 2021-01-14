@@ -123,6 +123,7 @@ class EnvHelper(CodeLocation):
             self.__strict = val
         return val
     #
+    #
     @property
     def tracking_enabled(self):
         return self.__tracking_enabled
@@ -131,6 +132,17 @@ class EnvHelper(CodeLocation):
     def tracking_enabled(self, val):
         if isinstance(val, bool):
             self.__tracking_enabled = val
+        return val
+    #
+    #
+    @property
+    def thread_safe(self):
+        return self.__thread_safe
+    #
+    @thread_safe.setter
+    def thread_safe(self, val):
+        if isinstance(val, bool):
+            self.__thread_safe = val
         return val
     #
     #
