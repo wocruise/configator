@@ -1,15 +1,17 @@
 # configator
 
-
-
-## Development
+## Development guide
 
 ### Prerequisites
 
 Start a redis instance:
 
 ```shell
-docker run --name redis-server -d redis redis-server --appendonly yes
+docker run -d \
+-p 6379:6379 \
+--name redis-server \
+redis \
+redis-server --appendonly yes
 ```
 
 ### Unit tests
