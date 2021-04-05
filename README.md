@@ -71,3 +71,30 @@ Run the publisher:
 ```shell
 python3 tests/examples/publisher.py
 ```
+
+| Tables   |      Are      |  Cool |
+|----------|:-------------:|------:|
+| col 1 is |  left-aligned | $1600 |
+| col 2 is |    centered   |   $12 |
+| col 3 is | right-aligned |    $1 |
+
+
+
+ First Header  | Second Header
+  ------------- | -------------
+  Content Cell  | Content Cell
+  Content Cell  | Content Cell
+
+
+|   |   |   |   |   |
+|---|---|---|---|---|
+|   |   |   |   |   |
+|   |   |   |   |   |
+
+
+
+
+[![IMAGE ALT TEXT HERE](https://www.google.com/url?sa=i&url=https%3A%2F%2Fvi.cleanpng.com%2Fkisspng-grmw6p%2F&psig=AOvVaw0tR6eKPRwHxUIQ3Wn7aHXx&ust=1617685084899000&source=images&cd=vfe&ved=0CAIQjRxqFwoTCLjr9dio5u8CFQAAAAAdAAAAABAI)](https://www.youtube.com/watch?v=pfU0QORkRpY)
+
+
+
